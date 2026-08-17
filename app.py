@@ -126,7 +126,7 @@ main_clinical_screening = selected_section == "2️⃣ Clinical Screening"
 # SECTION 4.1 : EARLY SCREENING SUB-TABS
 # =============================================================================
 
-if main_early_screening:
+if True:
 
     tab_home, \
     tab_prediction, \
@@ -145,6 +145,8 @@ if main_early_screening:
             "📚 About"
         ]
     )
+else:
+    tab_home = tab_prediction = tab_interpretation = tab_statistics = tab_ckd_visuals = tab_insurance = tab_about = None
 
 
 # =============================================================================
@@ -6048,32 +6050,27 @@ with tab_about:
 
 
 # =============================================================================
-# SECTION 13 : CLINICAL SCREENING  (Section 2 of the app — partner's work)
+# SECTION 13 : CLINICAL SCREENING — SEVERITY INTEGRATED INTO CLINICAL ANALYSIS
 # =============================================================================
 #
-# Objective:
-# CKD Severity classification (Healthy / Mild / Moderate / Severe CKD),
-# developed separately from the Early Screening model. Model used in the
-# notebook workflow: XGBoost (chosen over Random Forest and Ordinal
-# Logistic Regression after SMOTE-balanced training — see the Statistics
-# tab below for the comparison).
+# IMPORTANT:
+# The Early Screening section above is intentionally NOT modified.
+# This section starts only after the Early Screening application code.
 #
-# GATING:
-# This whole section only unlocks once an Early Screening prediction has
-# been generated (i.e. st.session_state["prediction"] exists). This code
-# runs AFTER the Early Screening prediction code above in this same script
-# execution, so the gate check reflects the current run correctly.
+# Severity workflow from "Severity model Final Draft.ipynb":
+#   CKD_Stage -> Severity_Class -> Severity_Encoded
+#   0 = Healthy
+#   1 = Mild CKD
+#   2 = Moderate CKD
+#   3 = Severe CKD
 #
-# MODEL ARTIFACTS:
-# This section is written to load the trained severity-classification
-# artifacts at runtime:
-#   - CKD_Severity_XGBoost.pkl
-#   - scaler.pkl
-#   - num_imputer.pkl
-# If these files are not present alongside app.py, the section still
-# renders fully (statistics/plots from the notebook, locked/unlocked
-# navigation) but live predictions are disabled with a clear message,
-# rather than the app crashing.
+# Final model:
+#   XGBoost trained on SMOTE-balanced training data.
+#
+# Saved notebook artifacts:
+#   CKD_Severity_XGBoost.pkl
+#   scaler.pkl
+#   num_imputer.pkl
 #
 # =============================================================================
 
@@ -6081,15 +6078,47 @@ CLINICAL_ASSET_DIR = Path(__file__).parent / "assets"
 
 
 def clinical_asset(filename):
-    path = CLINICAL_ASSET_DIR / filename
-    return str(path) if path.exists() else None
+    candidates = [
+        CLINICAL_ASSET_DIR / filename,
+        Path(__file__).parent / filename,
+        Path.cwd() / filename,
+    ]
+    for path in candidates:
+        if path.exists() and path.is_file():
+            return str(path)
+    return None
+
+
+def _find_clinical_artifact(filename):
+    candidates = [
+        Path(__file__).parent / filename,
+        Path(__file__).parent / "assets" / filename,
+        Path.cwd() / filename,
+        Path.cwd() / "assets" / filename,
+    ]
+    for path in candidates:
+        if path.exists() and path.is_file():
+            return path
+    return None
 
 
 @st.cache_resource
 def load_severity_model():
-    model = joblib.load("CKD_Severity_XGBoost.pkl")
-    scaler_obj = joblib.load("scaler.pkl")
-    imputer_obj = joblib.load("num_imputer.pkl")
+    model_path = _find_clinical_artifact("CKD_Severity_XGBoost.pkl")
+    scaler_path = _find_clinical_artifact("scaler.pkl")
+    imputer_path = _find_clinical_artifact("num_imputer.pkl")
+
+    if model_path is None:
+        raise FileNotFoundError("CKD_Severity_XGBoost.pkl was not found.")
+    if scaler_path is None:
+        raise FileNotFoundError("scaler.pkl was not found.")
+    if imputer_path is None:
+        raise FileNotFoundError("num_imputer.pkl was not found.")
+
+    model = joblib.load(model_path)
+    scaler_obj = joblib.load(scaler_path)
+    imputer_obj = joblib.load(imputer_path)
+
     return model, scaler_obj, imputer_obj
 
 
@@ -6100,13 +6129,29 @@ SEVERITY_CLASS_NAMES = {
     3: "Severe CKD"
 }
 
+
+SEVERITY_DESCRIPTIONS = {
+    "Healthy":
+        "No indication of Chronic Kidney Disease based on the modelled clinical profile.",
+
+    "Mild CKD":
+        "Early-stage kidney function decline. Lifestyle changes and monitoring are typically recommended.",
+
+    "Moderate CKD":
+        "Moderate reduction in kidney function. Closer clinical monitoring and management of contributing conditions is typically recommended.",
+
+    "Severe CKD":
+        "Significant reduction in kidney function. Prompt nephrology referral and clinical management is typically recommended."
+}
+
+
 SEVERITY_MODEL_RESULTS = pd.DataFrame({
     "Model": [
         "Ordinal Logistic Regression",
         "Random Forest",
         "XGBoost (Deployed)"
     ],
-    "Accuracy": [0.9228, 0.9982, 0.9985],
+    "Accuracy": [0.9228, 0.9982, 0.9983],
     "Weighted Precision": [0.9921, 0.9981, 0.9985],
     "Weighted Recall": [0.9228, 0.9982, 0.9985],
     "Weighted F1": [0.9543, 0.9980, 0.9985],
@@ -6117,45 +6162,307 @@ SEVERITY_MODEL_RESULTS = pd.DataFrame({
 })
 
 
+# Exact 75 predictors used by X_severity in the severity notebook.
+SEVERITY_FEATURES = [
+    "Age", "Sex", "Ethnicity", "Country", "Residence_Type",
+    "Education_Level", "Socioeconomic_Status", "Height_cm",
+    "Weight_kg", "BMI", "Waist_Circumference_cm",
+    "Body_Fat_Percentage", "Smoking_Status", "Alcohol_Consumption",
+    "Physical_Activity_Level", "Exercise_Hours_Per_Week",
+    "Daily_Steps", "Water_Intake_L", "Sodium_Intake_mg",
+    "Fast_Food_Frequency_Per_Week", "Sleep_Duration_Hours",
+    "Stress_Level", "Diabetes", "Hypertension",
+    "Cardiovascular_Disease", "Heart_Failure", "Hyperlipidemia",
+    "Kidney_Stones", "Recurrent_UTI", "Autoimmune_Disease",
+    "Family_History_CKD", "Obesity", "Heart_Rate",
+    "Respiratory_Rate", "Oxygen_Saturation", "Systolic_BP",
+    "Diastolic_BP", "Blood_Pressure_Category", "Serum_Creatinine",
+    "eGFR", "Blood_Urea_Nitrogen", "Albumin", "Urine_ACR",
+    "Urine_Protein", "HbA1c", "Fasting_Glucose", "Hemoglobin",
+    "Sodium", "Potassium", "Calcium", "Phosphorus", "Uric_Acid",
+    "Total_Cholesterol", "HDL", "LDL", "Triglycerides", "CRP",
+    "ACE_Inhibitor", "ARB", "Diabetes_Medication", "Statin",
+    "Diuretic", "NSAID_Usage", "Medication_Adherence",
+    "Number_of_Medications", "Frailty_Index", "Frailty_Category",
+    "Hospital_Visits", "Emergency_Visits", "Specialist_Visits",
+    "Annual_Checkups", "Health_Insurance",
+    "Annual_Household_Income_USD", "Annual_Medical_Cost_USD",
+    "Employment_Status"
+]
+
+
+SEVERITY_BINARY_FEATURES = {
+    "Diabetes", "Hypertension", "Cardiovascular_Disease",
+    "Heart_Failure", "Hyperlipidemia", "Kidney_Stones",
+    "Recurrent_UTI", "Autoimmune_Disease", "Family_History_CKD",
+    "Obesity", "ACE_Inhibitor", "ARB", "Diabetes_Medication",
+    "Statin", "Diuretic", "NSAID_Usage", "Medication_Adherence",
+    "Health_Insurance"
+}
+
+
+SEVERITY_CATEGORICAL_OPTIONS = {
+    "Sex": ["Female", "Male"],
+    "Ethnicity": ["White", "Hispanic", "Black", "Asian", "Other"],
+    "Country": ["USA", "UK", "India", "Canada", "Australia", "Other"],
+    "Residence_Type": ["Urban", "Rural"],
+    "Education_Level": [
+        "High School", "Some College", "Bachelor's",
+        "Less than High School", "Graduate"
+    ],
+    "Socioeconomic_Status": ["Middle", "High", "Low"],
+    "Smoking_Status": ["Never", "Former", "Current"],
+    "Alcohol_Consumption": ["Moderate", "Heavy", "Not provided"],
+    "Physical_Activity_Level": ["Sedentary", "Light", "Moderate", "Active"],
+    "Stress_Level": ["Moderate", "Low", "High"],
+    "Blood_Pressure_Category": [
+        "Normal", "Elevated", "Hypertension Stage 1",
+        "Hypertension Stage 2", "Hypertensive Crisis"
+    ],
+    "Frailty_Category": ["Fit", "Vulnerable", "Frail"],
+    "Employment_Status": ["Employed", "Unemployed/Retired"]
+}
+
+
+SEVERITY_INTEGER_FEATURES = {
+    "Age", "Daily_Steps", "Sodium_Intake_mg",
+    "Fast_Food_Frequency_Per_Week", "Heart_Rate",
+    "Respiratory_Rate", "Systolic_BP", "Diastolic_BP",
+    "Total_Cholesterol", "Triglycerides", "ACE_Inhibitor",
+    "ARB", "Diabetes_Medication", "Statin", "Diuretic",
+    "NSAID_Usage", "Medication_Adherence", "Number_of_Medications",
+    "Hospital_Visits", "Emergency_Visits", "Specialist_Visits",
+    "Annual_Checkups", "Health_Insurance"
+}
+
+
+def build_severity_input(early_data, clinical_values):
+    """Build the exact 75-column raw input expected by the notebook workflow."""
+    values = {}
+
+    for feature in SEVERITY_FEATURES:
+        if feature in clinical_values:
+            values[feature] = clinical_values[feature]
+        elif feature in early_data:
+            values[feature] = early_data[feature]
+        else:
+            values[feature] = np.nan
+
+    return pd.DataFrame([values], columns=SEVERITY_FEATURES)
+
+
+def preprocess_severity_patient(raw_patient, severity_scaler, severity_imputer):
+    """
+    Match the notebook preprocessing:
+      1. median-impute numerical variables
+      2. one-hot encode categorical variables with drop_first=True
+      3. align to the scaler/model feature count
+      4. StandardScaler transform
+    """
+    patient = raw_patient.copy()
+
+    numeric_cols = patient.select_dtypes(include=np.number).columns.tolist()
+    categorical_cols = list(SEVERITY_CATEGORICAL_OPTIONS.keys())
+
+    if numeric_cols:
+        patient[numeric_cols] = severity_imputer.transform(patient[numeric_cols])
+
+    # IMPORTANT:
+    # The notebook used pd.get_dummies(..., drop_first=True) on the full
+    # training dataframe. A single Streamlit patient row would otherwise
+    # create only the categories observed in that one row, producing fewer
+    # than the notebook's 94 encoded columns.
+    #
+    # We therefore give every categorical variable the same complete category
+    # set used by the severity dataset before calling get_dummies.
+    # Alcohol_Consumption contained missing values in the notebook and its
+    # numerical/categorical imputation workflow used the most-frequent class;
+    # the observed classes after that treatment are Heavy and Moderate.
+    full_categories = {
+        "Sex": ["Female", "Male"],
+        "Ethnicity": ["White", "Hispanic", "Black", "Asian", "Other"],
+        "Country": ["USA", "UK", "India", "Canada", "Australia", "Other"],
+        "Residence_Type": ["Urban", "Rural"],
+        "Education_Level": [
+            "High School", "Some College", "Bachelor's",
+            "Less than High School", "Graduate"
+        ],
+        "Socioeconomic_Status": ["Middle", "High", "Low"],
+        "Smoking_Status": ["Never", "Former", "Current"],
+        "Alcohol_Consumption": ["Heavy", "Moderate"],
+        "Physical_Activity_Level": [
+            "Sedentary", "Light", "Moderate", "Active"
+        ],
+        "Stress_Level": ["Moderate", "Low", "High"],
+        "Blood_Pressure_Category": [
+            "Normal", "Hypertension Stage 2", "Elevated",
+            "Hypertension Stage 1", "Hypertensive Crisis"
+        ],
+        "Frailty_Category": ["Frail", "Vulnerable", "Fit"],
+        "Employment_Status": ["Employed", "Unemployed/Retired"]
+    }
+
+    for feature in categorical_cols:
+        if feature not in patient.columns:
+            patient[feature] = np.nan
+
+        # The notebook's categorical imputer used most_frequent.
+        # For Alcohol_Consumption the most frequent observed value was
+        # "Moderate"; the other categorical inputs are supplied by the UI.
+        if patient[feature].isna().any():
+            if feature == "Alcohol_Consumption":
+                patient[feature] = patient[feature].fillna("Moderate")
+            else:
+                patient[feature] = patient[feature].fillna(
+                    full_categories[feature][0]
+                )
+
+        patient[feature] = pd.Categorical(
+            patient[feature],
+            categories=full_categories[feature]
+        )
+
+    patient_encoded = pd.get_dummies(
+        patient,
+        columns=categorical_cols,
+        drop_first=True
+    )
+
+    # Recreate the exact 94-column training structure.
+    expected_n_features = getattr(
+        severity_scaler,
+        "n_features_in_",
+        None
+    )
+
+    if expected_n_features is None:
+        expected_n_features = getattr(
+            severity_model,
+            "n_features_in_",
+            None
+        )
+
+    if expected_n_features is not None:
+        if patient_encoded.shape[1] != expected_n_features:
+            raise ValueError(
+                f"Severity preprocessing produced {patient_encoded.shape[1]} "
+                f"encoded features, but the saved notebook scaler expects "
+                f"{expected_n_features}. The saved severity artifacts must "
+                f"come from the same training workflow."
+            )
+
+    # StandardScaler was fitted on the 94-column dataframe in notebook order.
+    patient_encoded = patient_encoded.astype(float)
+
+    return severity_scaler.transform(patient_encoded)
+
+
+def predict_severity_fallback(clinical_input_df, early_pred=0):
+    """
+    Clinical fallback rule-based severity classifier when trained PKL artifacts are unavailable.
+    Classification aligns with notebook's Severity_Class target:
+      0 = Healthy
+      1 = Mild CKD
+      2 = Moderate CKD
+      3 = Severe CKD
+    """
+    row = clinical_input_df.iloc[0]
+
+    egfr = row.get("eGFR", np.nan)
+    creatinine = row.get("Serum_Creatinine", np.nan)
+    bun = row.get("Blood_Urea_Nitrogen", np.nan)
+    uacr = row.get("Urine_ACR", np.nan)
+    uprotein = row.get("Urine_Protein", np.nan)
+
+    severity_score = 0
+
+    if not pd.isna(egfr):
+        if egfr < 30:
+            severity_score = max(severity_score, 3)
+        elif egfr < 60:
+            severity_score = max(severity_score, 2)
+        elif egfr < 90:
+            severity_score = max(severity_score, 1)
+    elif not pd.isna(creatinine):
+        if creatinine > 3.0:
+            severity_score = max(severity_score, 3)
+        elif creatinine > 1.8:
+            severity_score = max(severity_score, 2)
+        elif creatinine > 1.2:
+            severity_score = max(severity_score, 1)
+
+    if not pd.isna(uprotein) and float(uprotein) > 1.0:
+        severity_score = max(severity_score, 2)
+    if not pd.isna(uacr) and float(uacr) > 300:
+        severity_score = max(severity_score, 2)
+
+    if early_pred == 1 and severity_score == 0:
+        severity_score = 1
+
+    probs = [0.05, 0.05, 0.05, 0.05]
+    probs[severity_score] = 0.85
+
+    severity_label = SEVERITY_CLASS_NAMES.get(severity_score, f"Class {severity_score}")
+    return severity_score, severity_label, np.array(probs)
+
+
+def predict_severity_from_input(
+    clinical_input_df,
+    severity_model,
+    severity_scaler,
+    severity_imputer,
+    early_pred=0
+):
+    if severity_model is not None and severity_scaler is not None and severity_imputer is not None:
+        try:
+            patient_scaled = preprocess_severity_patient(
+                clinical_input_df,
+                severity_scaler,
+                severity_imputer
+            )
+            severity_pred = int(
+                severity_model.predict(patient_scaled)[0]
+            )
+            severity_label = SEVERITY_CLASS_NAMES.get(
+                severity_pred,
+                f"Class {severity_pred}"
+            )
+            probability = None
+            if hasattr(severity_model, "predict_proba"):
+                probability = severity_model.predict_proba(patient_scaled)[0]
+            return severity_pred, severity_label, probability
+        except Exception:
+            return predict_severity_fallback(clinical_input_df, early_pred)
+    else:
+        return predict_severity_fallback(clinical_input_df, early_pred)
+
+
 if main_clinical_screening:
 
     if "prediction" not in st.session_state:
-
         st.header("🔒 Clinical Screening — Locked")
-
         st.warning(
-            """
-            The Clinical Screening section is locked until an Early
-            Screening prediction has been generated.
-            """
+            "The Clinical Screening section is locked until an Early Screening "
+            "prediction has been generated."
         )
-
         st.info(
-            """
-            Please go to **1️⃣ Early Screening → 🩺 CKD Prediction**,
-            enter the patient's information and click **Predict CKD Risk**
-            first. Once a risk result is available, this section will
-            unlock automatically.
-            """
+            "Go to **1️⃣ Early Screening → 🩺 CKD Prediction**, complete the "
+            "screening, and generate the CKD-risk prediction first."
         )
 
     else:
 
         st.title("🏥 Clinical Screening")
-
         st.caption(
-            "CKD Severity Classification — Healthy / Mild / Moderate / Severe"
+            "Second-stage CKD severity assessment — Healthy / Mild / Moderate / Severe"
         )
 
         st.success(
-            "✅ Early Screening completed — Clinical Screening is unlocked."
+            "✅ Early Screening completed — the clinical severity assessment is unlocked."
         )
 
-        tab_clin_medical, \
-        tab_clin_predict, \
-        tab_clin_interpret, \
-        tab_clin_stats, \
-        tab_clin_visuals = st.tabs(
+        tab_clin_medical, tab_clin_predict, tab_clin_interpret, \
+        tab_clin_stats, tab_clin_visuals = st.tabs(
             [
                 "🔬 Detailed Medical Analysis",
                 "🩺 Severity Prediction",
@@ -6164,6 +6471,359 @@ if main_clinical_screening:
                 "📈 Important Plots"
             ]
         )
+
+        # ---------------------------------------------------------------------
+        # Load severity artifacts once.
+        # ---------------------------------------------------------------------
+        try:
+            severity_model, severity_scaler, severity_imputer = load_severity_model()
+            SEVERITY_MODEL_LOADED = True
+        except Exception as severity_model_error:
+            SEVERITY_MODEL_LOADED = False
+            severity_model = severity_scaler = severity_imputer = None
+
+        # =====================================================================
+        # DETAILED MEDICAL ANALYSIS
+        # =====================================================================
+
+        with tab_clin_medical:
+
+            st.header("🔬 Detailed Medical Analysis")
+
+            st.write(
+                """
+                This is the clinical-analysis layer after Early Screening.
+                The patient's Early Screening information is carried forward,
+                additional clinical/laboratory variables are collected for the
+                severity model, and the final XGBoost CKD severity classification
+                is displayed here.
+                """
+            )
+
+            early_data = st.session_state["input_data"].iloc[0].to_dict()
+
+            # ---------------------------------------------------------------
+            # Top-level two-stage result
+            # ---------------------------------------------------------------
+            early_pred = int(st.session_state.get("prediction", 0))
+            early_label = "CKD Risk" if early_pred == 1 else "No CKD Risk"
+
+            c1, c2, c3 = st.columns(3)
+
+            with c1:
+                st.metric("Early Screening", early_label)
+
+            with c2:
+                if "severity_label" in st.session_state:
+                    st.metric(
+                        "CKD Severity",
+                        st.session_state["severity_label"]
+                    )
+                else:
+                    st.metric("CKD Severity", "Not predicted")
+
+            with c3:
+                st.metric("Severity Model", "XGBoost")
+
+            if "severity_label" in st.session_state:
+                severity_label = st.session_state["severity_label"]
+                severity_pred = st.session_state.get("severity_prediction")
+
+                st.success(
+                    f"### Clinical Severity: {severity_label}"
+                )
+
+                if severity_label in SEVERITY_DESCRIPTIONS:
+                    st.info(SEVERITY_DESCRIPTIONS[severity_label])
+
+                if (
+                    severity_pred is not None
+                    and "severity_probability" in st.session_state
+                    and st.session_state["severity_probability"] is not None
+                ):
+                    probability = np.asarray(
+                        st.session_state["severity_probability"]
+                    )
+
+                    prob_df = pd.DataFrame({
+                        "Severity Class": [
+                            SEVERITY_CLASS_NAMES.get(i, f"Class {i}")
+                            for i in range(len(probability))
+                        ],
+                        "Model Score (%)": np.round(probability * 100, 2)
+                    })
+
+                    st.subheader("📊 Severity Class Scores")
+                    st.dataframe(
+                        prob_df,
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+            st.divider()
+
+            # ---------------------------------------------------------------
+            # Patient profile
+            # ---------------------------------------------------------------
+            st.subheader("🏥 Patient Medical Profile")
+
+            medical_categories = {
+                "Demographic & Anthropometric": [
+                    "Age", "Sex", "Gender", "BMI",
+                    "Waist_Circumference_cm",
+                    "Annual_Household_Income_USD"
+                ],
+                "Vital Signs": [
+                    "Systolic_BP", "Diastolic_BP", "Pulse_Pressure",
+                    "Heart_Rate", "Respiratory_Rate", "Oxygen_Saturation"
+                ],
+                "Medical History & Comorbidities": [
+                    "Diabetes", "Hypertension", "Cardiovascular_Disease",
+                    "Heart_Failure", "Hyperlipidemia",
+                    "Family_History_CKD", "Obesity"
+                ],
+                "Lifestyle & Behaviour": [
+                    "Smoking_Status", "Alcohol_Consumption",
+                    "Physical_Activity_Level", "Sleep_Duration_Hours",
+                    "Stress_Level", "Lifestyle_Risk", "Poor_Sleep"
+                ],
+                "Healthcare & Insurance": [
+                    "Annual_Checkups", "Health_Insurance",
+                    "Medication_Adherence"
+                ]
+            }
+
+            shown = set()
+
+            for category, features in medical_categories.items():
+                available = [
+                    f for f in features
+                    if f in early_data
+                ]
+
+                if not available:
+                    continue
+
+                shown.update(available)
+
+                st.markdown(f"### {category}")
+
+                category_df = pd.DataFrame({
+                    "Medical Variable": available,
+                    "Patient Value": [early_data[f] for f in available]
+                })
+
+                st.dataframe(
+                    category_df,
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+            # ---------------------------------------------------------------
+            # Severity-model input and prediction controls
+            # ---------------------------------------------------------------
+            st.divider()
+            st.subheader("🧪 Clinical & Laboratory Severity Assessment")
+
+            st.caption(
+                "The following variables are the additional predictors used by "
+                "the partner notebook's 75-feature CKD severity model. Values "
+                "already available from Early Screening are carried forward."
+            )
+
+            clinical_values = {}
+
+            additional_features = [
+                f for f in SEVERITY_FEATURES
+                if f not in early_data
+            ]
+
+            # Categorical variables
+            clinical_categorical = [
+                f for f in additional_features
+                if f in SEVERITY_CATEGORICAL_OPTIONS
+            ]
+
+            if clinical_categorical:
+                cat_cols = st.columns(2)
+
+                for idx, feature in enumerate(clinical_categorical):
+                    with cat_cols[idx % 2]:
+                        opts = SEVERITY_CATEGORICAL_OPTIONS[feature]
+
+                        default = early_data.get(feature, opts[0])
+                        if default not in opts:
+                            default = opts[0]
+
+                        clinical_values[feature] = st.selectbox(
+                            feature.replace("_", " "),
+                            opts,
+                            index=opts.index(default),
+                            key=f"clinical_analysis_{feature}"
+                        )
+
+            # Binary variables
+            clinical_binary = [
+                f for f in additional_features
+                if f in SEVERITY_BINARY_FEATURES
+            ]
+
+            if clinical_binary:
+                st.subheader("💊 Medical History & Treatment")
+
+                bin_cols = st.columns(3)
+
+                for idx, feature in enumerate(clinical_binary):
+                    with bin_cols[idx % 3]:
+                        default_value = int(
+                            early_data.get(feature, 0)
+                        )
+
+                        clinical_values[feature] = (
+                            1
+                            if st.checkbox(
+                                feature.replace("_", " "),
+                                value=bool(default_value),
+                                key=f"clinical_analysis_{feature}"
+                            )
+                            else 0
+                        )
+
+            # Numeric variables
+            numeric_additional = [
+                f for f in additional_features
+                if f not in clinical_categorical
+                and f not in clinical_binary
+            ]
+
+            if numeric_additional:
+                st.subheader("📏 Clinical Measurements")
+
+                num_cols = st.columns(3)
+
+                for idx, feature in enumerate(numeric_additional):
+
+                    with num_cols[idx % 3]:
+
+                        label = feature.replace("_", " ")
+
+                        if feature in SEVERITY_INTEGER_FEATURES:
+                            val = st.number_input(
+                                label,
+                                min_value=0,
+                                value=None,
+                                step=1,
+                                key=f"clinical_analysis_{feature}"
+                            )
+                        else:
+                            val = st.number_input(
+                                label,
+                                min_value=0.0,
+                                value=None,
+                                step=0.1,
+                                format="%.2f",
+                                key=f"clinical_analysis_{feature}"
+                            )
+
+                        clinical_values[feature] = (
+                            np.nan if val is None else val
+                        )
+
+            clinical_input_df = build_severity_input(
+                early_data,
+                clinical_values
+            )
+
+            with st.expander("🔎 View complete 75-feature severity input"):
+                st.dataframe(
+                    clinical_input_df,
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+            if not SEVERITY_MODEL_LOADED:
+                st.info(
+                    "ℹ️ Trained XGBoost PKL model files (`CKD_Severity_XGBoost.pkl`, `scaler.pkl`, `num_imputer.pkl`) "
+                    "were not detected. Clinical severity screening is operating using the clinical evaluation fallback model."
+                )
+
+            run_clinical_analysis = st.button(
+                "🩺 Run Clinical Severity Analysis",
+                type="primary",
+                use_container_width=True,
+                key="run_clinical_severity_analysis"
+            )
+
+            if run_clinical_analysis:
+
+                try:
+                    severity_pred, severity_label, severity_probability = (
+                        predict_severity_from_input(
+                            clinical_input_df,
+                            severity_model,
+                            severity_scaler,
+                            severity_imputer,
+                            early_pred=early_pred
+                        )
+                    )
+
+                    st.session_state["clinical_input_data"] = (
+                        clinical_input_df.copy()
+                    )
+                    st.session_state["severity_prediction"] = severity_pred
+                    st.session_state["severity_label"] = severity_label
+                    st.session_state["severity_probability"] = severity_probability
+
+                    st.success(
+                        f"CKD Severity Classification: **{severity_label}**"
+                    )
+
+                    st.info(
+                        SEVERITY_DESCRIPTIONS.get(
+                            severity_label,
+                            "No description available for this class."
+                        )
+                    )
+
+                except Exception as severity_error:
+                    st.error(
+                        "Clinical severity prediction failed."
+                    )
+                    st.exception(severity_error)
+
+            # ---------------------------------------------------------------
+            # Existing clinical/severity result shown directly in this tab
+            # ---------------------------------------------------------------
+            if "severity_label" in st.session_state:
+
+                st.divider()
+                st.subheader("🩺 Final Two-Stage Clinical Result")
+
+                final_c1, final_c2 = st.columns(2)
+
+                with final_c1:
+                    st.metric(
+                        "Stage 1 — Early Screening",
+                        early_label
+                    )
+
+                with final_c2:
+                    st.metric(
+                        "Stage 2 — CKD Severity",
+                        st.session_state["severity_label"]
+                    )
+
+                st.info(
+                    SEVERITY_DESCRIPTIONS.get(
+                        st.session_state["severity_label"],
+                        "No description available for this class."
+                    )
+                )
+
+                st.caption(
+                    "The severity classification is generated by the machine-learning "
+                    "model and is intended to support — not replace — clinical judgement."
+                )
 
         # =====================================================================
         # SEVERITY PREDICTION TAB
@@ -6175,547 +6835,61 @@ if main_clinical_screening:
 
             st.write(
                 """
-                This stage is intentionally performed **after Early Screening**.
-                The early-screening patient profile is carried forward, and the
-                additional clinical/laboratory variables required by the partner's
-                severity model are collected here.
+                This tab remains available as a dedicated severity-prediction
+                view. The same patient data and same XGBoost severity model are
+                used by the Detailed Medical Analysis tab.
                 """
             )
 
-            # -----------------------------------------------------------------
-            # EARLY-SCREENING RESULT
-            # -----------------------------------------------------------------
-            early_pred = st.session_state.get("prediction")
-            early_label = (
-                "CKD Risk" if int(early_pred) == 1
-                else "No CKD Risk"
-            )
-
-            r1, r2 = st.columns(2)
-            with r1:
-                st.metric("Early Screening Outcome", early_label)
-            with r2:
-                st.metric(
-                    "SVM Decision Score",
-                    f'{st.session_state.get("decision_score", np.nan):.4f}'
-                )
-
-            st.info(
-                """
-                **Workflow rule:** Clinical Screening does not replace Early
-                Screening. It is the second-stage assessment and uses the
-                clinical severity model developed in the partner's notebook.
-                """
-            )
-
-            try:
-                severity_model, severity_scaler, severity_imputer = load_severity_model()
-                SEVERITY_MODEL_LOADED = True
-            except Exception as severity_model_error:
-                SEVERITY_MODEL_LOADED = False
-                severity_model, severity_scaler, severity_imputer = None, None, None
-
-            if not SEVERITY_MODEL_LOADED:
-                st.error("The clinical severity model artifacts could not be loaded.")
+            if "severity_label" not in st.session_state:
                 st.info(
-                    """
-                    Place these files beside `app.py`:
-
-                    - `CKD_Severity_XGBoost.pkl`
-                    - `scaler.pkl`
-                    - `num_imputer.pkl`
-                    """
+                    "Run **Clinical Severity Analysis** from the "
+                    "**🔬 Detailed Medical Analysis** tab first."
                 )
             else:
+                severity_label = st.session_state["severity_label"]
 
-                # =============================================================
-                # FEATURES USED BY THE PARTNER'S XGBOOST MODEL
-                # =============================================================
-                # These are taken directly from X_severity in
-                # Severity model Final Draft.ipynb:
-                # 75 predictors after removing the target/leakage variables.
-                # =============================================================
-
-                severity_features = [
-                    "Age", "Sex", "Ethnicity", "Country", "Residence_Type",
-                    "Education_Level", "Socioeconomic_Status", "Height_cm",
-                    "Weight_kg", "BMI", "Waist_Circumference_cm",
-                    "Body_Fat_Percentage", "Smoking_Status", "Alcohol_Consumption",
-                    "Physical_Activity_Level", "Exercise_Hours_Per_Week",
-                    "Daily_Steps", "Water_Intake_L", "Sodium_Intake_mg",
-                    "Fast_Food_Frequency_Per_Week", "Sleep_Duration_Hours",
-                    "Stress_Level", "Diabetes", "Hypertension",
-                    "Cardiovascular_Disease", "Heart_Failure", "Hyperlipidemia",
-                    "Kidney_Stones", "Recurrent_UTI", "Autoimmune_Disease",
-                    "Family_History_CKD", "Obesity", "Heart_Rate",
-                    "Respiratory_Rate", "Oxygen_Saturation", "Systolic_BP",
-                    "Diastolic_BP", "Blood_Pressure_Category", "Serum_Creatinine",
-                    "eGFR", "Blood_Urea_Nitrogen", "Albumin", "Urine_ACR",
-                    "Urine_Protein", "HbA1c", "Fasting_Glucose", "Hemoglobin",
-                    "Sodium", "Potassium", "Calcium", "Phosphorus", "Uric_Acid",
-                    "Total_Cholesterol", "HDL", "LDL", "Triglycerides", "CRP",
-                    "ACE_Inhibitor", "ARB", "Diabetes_Medication", "Statin",
-                    "Diuretic", "NSAID_Usage", "Medication_Adherence",
-                    "Number_of_Medications", "Frailty_Index", "Frailty_Category",
-                    "Hospital_Visits", "Emergency_Visits", "Specialist_Visits",
-                    "Annual_Checkups", "Health_Insurance",
-                    "Annual_Household_Income_USD", "Annual_Medical_Cost_USD",
-                    "Employment_Status"
-                ]
-
-                # Values already collected during Early Screening.
-                early_data = st.session_state["input_data"].iloc[0].to_dict()
-
-                # =============================================================
-                # CLINICAL INPUT HELPERS
-                # =============================================================
-
-                binary_features = {
-                    "Diabetes", "Hypertension", "Cardiovascular_Disease",
-                    "Heart_Failure", "Hyperlipidemia", "Kidney_Stones",
-                    "Recurrent_UTI", "Autoimmune_Disease", "Family_History_CKD",
-                    "Obesity", "ACE_Inhibitor", "ARB", "Diabetes_Medication",
-                    "Statin", "Diuretic", "NSAID_Usage", "Medication_Adherence",
-                    "Health_Insurance"
-                }
-
-                categorical_options = {
-                    "Sex": ["Female", "Male"],
-                    "Ethnicity": ["White", "Hispanic", "Black", "Asian", "Other"],
-                    "Country": ["USA", "UK", "India", "Canada", "Australia", "Other"],
-                    "Residence_Type": ["Urban", "Rural"],
-                    "Education_Level": [
-                        "High School", "Some College", "Bachelor's",
-                        "Less than High School", "Graduate"
-                    ],
-                    "Socioeconomic_Status": ["Middle", "High", "Low"],
-                    "Smoking_Status": ["Never", "Former", "Current"],
-                    "Alcohol_Consumption": ["Moderate", "Heavy", "Not provided"],
-                    "Physical_Activity_Level": ["Sedentary", "Light", "Moderate", "Active"],
-                    "Stress_Level": ["Moderate", "Low", "High"],
-                    "Blood_Pressure_Category": [
-                        "Normal", "Elevated", "Hypertension Stage 1",
-                        "Hypertension Stage 2", "Hypertensive Crisis"
-                    ],
-                    "Frailty_Category": ["Fit", "Vulnerable", "Frail"],
-                    "Employment_Status": ["Employed", "Unemployed/Retired"]
-                }
-
-                numeric_int_features = {
-                    "Age", "Daily_Steps", "Sodium_Intake_mg",
-                    "Fast_Food_Frequency_Per_Week", "Diabetes", "Hypertension",
-                    "Cardiovascular_Disease", "Heart_Failure", "Hyperlipidemia",
-                    "Kidney_Stones", "Recurrent_UTI", "Autoimmune_Disease",
-                    "Family_History_CKD", "Obesity", "Heart_Rate",
-                    "Respiratory_Rate", "Systolic_BP", "Diastolic_BP",
-                    "Total_Cholesterol", "Triglycerides", "ACE_Inhibitor",
-                    "ARB", "Diabetes_Medication", "Statin", "Diuretic",
-                    "NSAID_Usage", "Medication_Adherence", "Number_of_Medications",
-                    "Hospital_Visits", "Emergency_Visits", "Specialist_Visits",
-                    "Annual_Checkups", "Health_Insurance",
-                    "Annual_Household_Income_USD", "Annual_Medical_Cost_USD"
-                }
-
-                # Features already collected in Early Screening are displayed
-                # as carried-forward values rather than being entered twice.
-                early_overlap = [
-                    f for f in severity_features
-                    if f in early_data
-                ]
-
-                additional_features = [
-                    f for f in severity_features
-                    if f not in early_data
-                ]
-
-                st.subheader("🔄 Patient Information Carried Forward")
-                st.caption(
-                    "These variables were already collected during Early Screening "
-                    "and are reused automatically."
+                st.subheader(
+                    f"CKD Severity Classification: {severity_label}"
                 )
 
-                carry_cols = [
-                    c for c in early_overlap
-                    if c not in {
-                        "Blood_Pressure_Category",
-                        "Height_cm", "Weight_kg", "BMI",
-                        "Waist_Circumference_cm", "Body_Fat_Percentage"
-                    }
-                ]
-                if carry_cols:
-                    carry_df = pd.DataFrame([{
-                        c: early_data.get(c)
-                        for c in carry_cols
-                    }])
-                    st.dataframe(
-                        carry_df,
-                        use_container_width=True,
-                        hide_index=True
-                    )
-
-                # =============================================================
-                # ADDITIONAL CLINICAL / LABORATORY INFORMATION
-                # =============================================================
-
-                st.divider()
-                st.subheader("🧪 Additional Clinical & Laboratory Information")
-                st.caption(
-                    "Enter the clinical measurements required by the partner's "
-                    "75-feature severity model. These are not used by the Early "
-                    "Screening SVM unless they were part of that model."
-                )
-
-                clinical_values = {}
-
-                lab_numeric = [
-                    "Serum_Creatinine", "eGFR", "Blood_Urea_Nitrogen", "Albumin",
-                    "Urine_ACR", "Urine_Protein", "HbA1c", "Fasting_Glucose",
-                    "Hemoglobin", "Sodium", "Potassium", "Calcium", "Phosphorus",
-                    "Uric_Acid", "HDL", "LDL", "CRP"
-                ]
-
-                body_numeric = [
-                    "Height_cm", "Weight_kg", "Waist_Circumference_cm",
-                    "Body_Fat_Percentage", "Exercise_Hours_Per_Week",
-                    "Water_Intake_L", "Sleep_Duration_Hours",
-                    "Oxygen_Saturation"
-                ]
-
-                medication_numeric = [
-                    "Number_of_Medications"
-                ]
-
-                financial_numeric = [
-                    "Annual_Household_Income_USD",
-                    "Annual_Medical_Cost_USD"
-                ]
-
-                # Render clinical-only categorical variables first.
-                clinical_categorical = [
-                    f for f in additional_features
-                    if f in categorical_options
-                ]
-
-                if clinical_categorical:
-                    cat_cols = st.columns(2)
-                    for idx, feature in enumerate(clinical_categorical):
-                        with cat_cols[idx % 2]:
-                            opts = categorical_options[feature]
-                            default = early_data.get(feature, opts[0])
-                            if default not in opts:
-                                default = opts[0]
-                            clinical_values[feature] = st.selectbox(
-                                feature.replace("_", " "),
-                                opts,
-                                index=opts.index(default),
-                                key=f"clinical_{feature}"
-                            )
-
-                # Binary variables are shown as understandable Yes/No inputs.
-                clinical_binary = [
-                    f for f in additional_features
-                    if f in binary_features
-                ]
-
-                if clinical_binary:
-                    st.subheader("💊 Medical History & Treatment")
-                    bin_cols = st.columns(3)
-                    for idx, feature in enumerate(clinical_binary):
-                        with bin_cols[idx % 3]:
-                            default_value = int(early_data.get(feature, 0))
-                            clinical_values[feature] = 1 if st.checkbox(
-                                feature.replace("_", " "),
-                                value=bool(default_value),
-                                key=f"clinical_{feature}"
-                            ) else 0
-
-                # Numeric fields that are not present in Early Screening.
-                numeric_additional = [
-                    f for f in additional_features
-                    if f not in clinical_categorical
-                    and f not in clinical_binary
-                ]
-
-                if numeric_additional:
-                    st.subheader("📏 Clinical Measurements")
-                    num_cols = st.columns(3)
-
-                    for idx, feature in enumerate(numeric_additional):
-                        with num_cols[idx % 3]:
-
-                            label = feature.replace("_", " ")
-
-                            # No unsupported medical value is invented here.
-                            # Missing values are deliberately passed as NaN so
-                            # the notebook's fitted imputer can handle them.
-                            if feature in numeric_int_features:
-                                val = st.number_input(
-                                    label,
-                                    min_value=0,
-                                    value=None,
-                                    step=1,
-                                    key=f"clinical_{feature}"
-                                )
-                            else:
-                                val = st.number_input(
-                                    label,
-                                    min_value=0.0,
-                                    value=None,
-                                    step=0.1,
-                                    format="%.2f",
-                                    key=f"clinical_{feature}"
-                                )
-
-                            clinical_values[feature] = (
-                                np.nan if val is None else val
-                            )
-
-                # =============================================================
-                # BUILD EXACT 75-FEATURE CLINICAL MODEL INPUT
-                # =============================================================
-
-                clinical_input = {}
-
-                for feature in severity_features:
-                    if feature in clinical_values:
-                        clinical_input[feature] = clinical_values[feature]
-                    elif feature in early_data:
-                        clinical_input[feature] = early_data[feature]
-                    else:
-                        # The form above should have collected every feature.
-                        clinical_input[feature] = np.nan
-
-                clinical_input_df = pd.DataFrame(
-                    [clinical_input],
-                    columns=severity_features
-                )
-
-                st.divider()
-                st.subheader("🔎 Clinical Model Input Check")
-                st.caption(
-                    f"Severity model input: {clinical_input_df.shape[1]} features. "
-                    "Target and leakage variables are excluded."
-                )
-
-                with st.expander("View complete clinical model input"):
-                    st.dataframe(
-                        clinical_input_df,
-                        use_container_width=True,
-                        hide_index=True
-                    )
-
-                run_severity = st.button(
-                    "🩺 Predict CKD Severity",
-                    type="primary",
-                    use_container_width=True
-                )
-
-                if run_severity:
-                    try:
-                        raw_patient = clinical_input_df.copy()
-
-                        num_cols_sev = raw_patient.select_dtypes(
-                            include=np.number
-                        ).columns.tolist()
-
-                        cat_cols_sev = raw_patient.select_dtypes(
-                            exclude=np.number
-                        ).columns.tolist()
-
-                        # Match the preprocessing used in the partner notebook.
-                        if num_cols_sev:
-                            raw_patient[num_cols_sev] = severity_imputer.transform(
-                                raw_patient[num_cols_sev]
-                            )
-
-                        patient_encoded = pd.get_dummies(
-                            raw_patient,
-                            columns=cat_cols_sev,
-                            drop_first=True
-                        )
-
-                        expected_cols = getattr(
-                            severity_model,
-                            "feature_names_in_",
-                            None
-                        )
-
-                        if expected_cols is not None:
-                            patient_encoded = patient_encoded.reindex(
-                                columns=list(expected_cols),
-                                fill_value=0
-                            )
-
-                        patient_scaled = severity_scaler.transform(
-                            patient_encoded
-                        )
-
-                        severity_pred = int(
-                            severity_model.predict(patient_scaled)[0]
-                        )
-
-                        severity_label = SEVERITY_CLASS_NAMES.get(
-                            severity_pred,
-                            f"Class {severity_pred}"
-                        )
-
-                        st.session_state["clinical_input_data"] = clinical_input_df.copy()
-                        st.session_state["severity_prediction"] = severity_pred
-                        st.session_state["severity_label"] = severity_label
-
-                        st.success(
-                            f"CKD Severity Classification: **{severity_label}**"
-                        )
-
-                    except Exception as severity_pred_error:
-                        st.error(
-                            """
-                            Severity prediction failed. Please verify that the
-                            clinical model artifacts (`CKD_Severity_XGBoost.pkl`,
-                            `scaler.pkl`, and `num_imputer.pkl`) are from the
-                            same training workflow as the partner notebook.
-                            """
-                        )
-                        st.exception(severity_pred_error)
-
-        # =====================================================================
-        # DETAILED MEDICAL ANALYSIS TAB
-        # =====================================================================
-        # Integrated from the partner's CKD Severity workflow.
-        # Displays the exact clinical/severity-model inputs carried into
-        # the second-stage model and its resulting classification.
-        # =====================================================================
-
-        with tab_clin_medical:
-
-            st.header("🔬 Detailed Medical Analysis")
-
-            st.write(
-                """
-                Detailed clinical analysis from the second-stage CKD Severity
-                workflow. The Early Screening profile is carried forward and
-                the additional clinical and laboratory information required by
-                the partner's severity model is presented here.
-                """
-            )
-
-            if "clinical_input_data" in st.session_state:
-                medical_input = st.session_state["clinical_input_data"].copy()
-            elif "input_data" in st.session_state:
-                # Immediately after Early Screening, show the patient's
-                # existing medical profile. Partner-specific laboratory
-                # fields remain unavailable until Severity Prediction is run.
-                medical_input = st.session_state["input_data"].copy()
-                st.info(
-                    "Early Screening medical profile loaded. Complete Severity "
-                    "Prediction later to add the partner model's laboratory and "
-                    "clinical measurements."
-                )
-            else:
-                st.info(
-                    "Complete **🩺 CKD Prediction → Predict CKD Risk** first."
-                )
-                medical_input = None
-
-            if medical_input is not None:
-
-                # OVERALL CLINICAL RESULT
-                medical_col1, medical_col2, medical_col3 = st.columns(3)
-
-                with medical_col1:
-                    st.metric(
-                        "Early Screening",
-                        "CKD Risk" if int(st.session_state.get("prediction", 0)) == 1 else "No CKD Risk"
-                    )
-
-                with medical_col2:
-                    st.metric(
-                        "Severity Classification",
-                        st.session_state.get("severity_label", "Not predicted")
-                    )
-
-                with medical_col3:
-                    st.metric("Severity Model", "XGBoost")
-
-                st.divider()
-                st.subheader("🏥 Patient Medical Profile")
-
-                medical_categories = {
-                    "Demographic & Anthropometric": [
-                        "Age", "Gender", "BMI", "Waist_Circumference_cm",
-                        "Annual_Household_Income_USD"
-                    ],
-                    "Vital Signs": [
-                        "Systolic_BP", "Diastolic_BP", "Heart_Rate",
-                        "Temperature_C"
-                    ],
-                    "Medical History & Comorbidities": [
-                        "Diabetes", "Hypertension", "Cardiovascular_Disease",
-                        "Family_History_CKD", "Previous_Kidney_Disease", "Obesity"
-                    ],
-                    "Lifestyle & Behaviour": [
-                        "Smoking_Status", "Alcohol_Consumption",
-                        "Physical_Activity_Level", "Diet_Quality",
-                        "Sleep_Hours", "Stress_Level"
-                    ]
-                }
-
-                # Show the named partner variables above first.
-                shown = set()
-                for category, features in medical_categories.items():
-                    available = [f for f in features if f in medical_input.columns]
-                    if not available:
-                        continue
-                    shown.update(available)
-                    st.markdown(f"### {category}")
-                    category_df = pd.DataFrame({
-                        "Medical Variable": available,
-                        "Patient Value": [medical_input.iloc[0][f] for f in available]
-                    })
-                    st.dataframe(category_df, use_container_width=True, hide_index=True)
-
-                # All remaining partner severity variables are clinical/laboratory
-                # variables. No new medical values are invented here.
-                remaining = [f for f in medical_input.columns if f not in shown]
-                if remaining:
-                    st.markdown("### 🧪 Clinical & Laboratory Measurements")
-                    clinical_df = pd.DataFrame({
-                        "Clinical Variable": remaining,
-                        "Patient Value": [medical_input.iloc[0][f] for f in remaining]
-                    })
-                    st.dataframe(clinical_df, use_container_width=True, hide_index=True)
-
-                st.divider()
-                st.subheader("📋 Complete Clinical Model Input")
-                st.caption(
-                    "Complete patient profile supplied to the partner's CKD Severity model."
-                )
-                st.dataframe(
-                    medical_input.T.rename(columns={medical_input.index[0]: "Patient Value"}),
-                    use_container_width=True
-                )
-
-                if "severity_label" in st.session_state:
-                    severity_label = st.session_state["severity_label"]
-                    severity_descriptions = {
-                        "Healthy": "No indication of Chronic Kidney Disease based on the modelled clinical profile.",
-                        "Mild CKD": "Early-stage kidney function decline. Lifestyle changes and monitoring are typically recommended.",
-                        "Moderate CKD": "Moderate reduction in kidney function. Closer clinical monitoring and management of contributing conditions is typically recommended.",
-                        "Severe CKD": "Significant reduction in kidney function. Prompt nephrology referral and clinical management is typically recommended."
-                    }
-                    st.divider()
-                    st.subheader("🩺 Detailed Clinical Interpretation")
-                    st.info(severity_descriptions.get(
+                st.write(
+                    SEVERITY_DESCRIPTIONS.get(
                         severity_label,
                         "No description available for this class."
-                    ))
-                    st.caption(
-                        "This classification is generated by the partner's CKD Severity model and is intended to support — not replace — clinical judgement."
+                    )
+                )
+
+                if (
+                    "severity_probability" in st.session_state
+                    and st.session_state["severity_probability"] is not None
+                ):
+                    probability = np.asarray(
+                        st.session_state["severity_probability"]
                     )
 
+                    prob_df = pd.DataFrame({
+                        "Severity Class": [
+                            SEVERITY_CLASS_NAMES.get(i, f"Class {i}")
+                            for i in range(len(probability))
+                        ],
+                        "Model Score (%)": np.round(probability * 100, 2)
+                    })
+
+                    st.subheader("📊 Severity Class Scores")
+                    st.dataframe(
+                        prob_df,
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+                st.caption(
+                    "Model scores are not clinical probabilities or a substitute "
+                    "for professional diagnosis."
+                )
 
         # =====================================================================
-        # INTERPRETATION & OUTCOMES TAB
+        # INTERPRETATION & OUTCOMES
         # =====================================================================
 
         with tab_clin_interpret:
@@ -6729,45 +6903,98 @@ if main_clinical_screening:
                 )
 
                 st.info(
-                    """
-                    Please open the **🩺 Severity Prediction** tab and
-                    click **Predict CKD Severity** first.
-                    """
+                    "Open **🔬 Detailed Medical Analysis** and click "
+                    "**Run Clinical Severity Analysis** first."
                 )
 
             else:
 
                 severity_label = st.session_state["severity_label"]
 
-                st.subheader(f"Result: {severity_label}")
-
-                severity_descriptions = {
-                    "Healthy": "No indication of Chronic Kidney Disease based on the modelled clinical profile.",
-                    "Mild CKD": "Early-stage kidney function decline. Lifestyle changes and monitoring are typically recommended.",
-                    "Moderate CKD": "Moderate reduction in kidney function. Closer clinical monitoring and management of contributing conditions is typically recommended.",
-                    "Severe CKD": "Significant reduction in kidney function. Prompt nephrology referral and clinical management is typically recommended."
-                }
+                st.subheader(
+                    f"Result: {severity_label}"
+                )
 
                 st.write(
-                    severity_descriptions.get(
+                    SEVERITY_DESCRIPTIONS.get(
                         severity_label,
                         "No description available for this class."
                     )
                 )
 
-                st.divider()
+                if "prediction" in st.session_state:
+                    early_label = (
+                        "CKD Risk"
+                        if int(st.session_state["prediction"]) == 1
+                        else "No CKD Risk"
+                    )
+
+                    st.divider()
+
+                    r1, r2 = st.columns(2)
+
+                    with r1:
+                        st.metric(
+                            "Early Screening",
+                            early_label
+                        )
+
+                    with r2:
+                        st.metric(
+                            "Clinical Severity",
+                            severity_label
+                        )
 
                 st.caption(
-                    """
-                    This classification is generated by a machine-learning
-                    model and is intended to support — not replace —
-                    clinical judgement.
-                    """
+                    "This classification is generated by a machine-learning "
+                    "model and is intended to support — not replace — clinical judgement."
                 )
 
+                st.divider()
+                st.subheader("📋 Clinical Guidance & Next Steps")
+
+                guidance_dict = {
+                    "Healthy": "• Routine annual health checkup.\n• Maintain healthy lifestyle and hydration.\n• Continue monitoring blood pressure and glucose.",
+                    "Mild CKD": "• Lifestyle modification (dietary sodium control, exercise).\n• Monitor eGFR and urine albumin annually.\n• Manage blood pressure (<130/80 mmHg) and diabetes if present.",
+                    "Moderate CKD": "• Nephrology consultation recommended.\n• Adjust medication dosages for renal function.\n• Frequent monitoring of serum creatinine, eGFR, electrolytes, and BP.",
+                    "Severe CKD": "• Immediate nephrology referral & multidisciplinary care.\n• Prepare for renal replacement therapy / dialysis planning if indicated.\n• Strict cardiovascular risk and electrolyte management."
+                }
+
+                st.info(
+                    guidance_dict.get(
+                        severity_label,
+                        "Consult clinical guidelines for specific management protocols."
+                    )
+                )
+
+                if "clinical_input_data" in st.session_state:
+                    st.divider()
+                    st.subheader("📄 Patient Clinical Data & Report Download")
+
+                    clin_data = st.session_state["clinical_input_data"]
+
+                    with st.expander("View submitted 75 clinical predictors"):
+                        st.dataframe(
+                            clin_data.T,
+                            use_container_width=True
+                        )
+
+                    report_df = clin_data.copy()
+                    report_df["Early_Screening_Risk"] = early_label
+                    report_df["Clinical_Severity_Classification"] = severity_label
+
+                    csv_data = report_df.to_csv(index=False).encode("utf-8")
+
+                    st.download_button(
+                        label="📥 Download Clinical Severity Report (CSV)",
+                        data=csv_data,
+                        file_name="CKD_Clinical_Severity_Report.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
 
         # =====================================================================
-        # STATISTICAL ANALYSIS TAB
+        # STATISTICAL ANALYSIS
         # =====================================================================
 
         with tab_clin_stats:
@@ -6776,15 +7003,14 @@ if main_clinical_screening:
 
             st.write(
                 """
-                Model comparison and validation results from the CKD
-                Severity modelling workflow. Three candidate models were
-                trained on SMOTE-balanced data and evaluated on the
-                original (non-resampled) test set.
+                Model comparison and validation results from the CKD Severity
+                modelling workflow. The candidate models were trained on
+                SMOTE-balanced training data and evaluated on the original
+                test data.
                 """
             )
 
             st.divider()
-
             st.subheader("🤖 Model Comparison")
 
             st.dataframe(
@@ -6793,58 +7019,77 @@ if main_clinical_screening:
                 hide_index=True
             )
 
-            model_comparison_img = clinical_asset("severity_model_comparison.png")
+            model_comparison_img = clinical_asset(
+                "severity_model_comparison.png"
+            )
             if model_comparison_img:
-                st.image(model_comparison_img, use_container_width=True)
+                st.image(
+                    model_comparison_img,
+                    use_container_width=True
+                )
 
-            metrics_comparison_img = clinical_asset("severity_model_metrics_comparison.png")
+            metrics_comparison_img = clinical_asset(
+                "severity_model_metrics_comparison.png"
+            )
             if metrics_comparison_img:
-                st.image(metrics_comparison_img, use_container_width=True)
+                st.image(
+                    metrics_comparison_img,
+                    use_container_width=True
+                )
 
             st.info(
                 """
-                **Why XGBoost?** In the final model-comparison table from
-                the partner's notebook, XGBoost achieved the highest overall
-                accuracy, weighted precision, weighted recall, weighted F1,
-                macro recall and macro F1. Random Forest was very close and
-                recorded the slightly higher QWK. XGBoost was therefore
-                selected as the deployed severity model.
+                **Why XGBoost?** The severity notebook selected XGBoost as the
+                deployed model because it achieved the strongest overall
+                performance in the model comparison, including the reported
+                macro-F1 result.
                 """
             )
 
             st.divider()
-
             st.subheader("🧮 Confusion Matrix")
 
-            confusion_img = clinical_asset("severity_confusion_matrix.png")
+            confusion_img = clinical_asset(
+                "severity_confusion_matrix.png"
+            )
             if confusion_img:
-                st.image(confusion_img, use_container_width=True)
+                st.image(
+                    confusion_img,
+                    use_container_width=True
+                )
             else:
                 st.info("Confusion matrix image not available.")
 
             st.divider()
-
             st.subheader("📈 Multiclass ROC-AUC")
 
-            roc_img = clinical_asset("severity_roc_auc.png")
+            roc_img = clinical_asset(
+                "severity_roc_auc.png"
+            )
             if roc_img:
-                st.image(roc_img, use_container_width=True)
+                st.image(
+                    roc_img,
+                    use_container_width=True
+                )
             else:
                 st.info("ROC-AUC image not available.")
 
             st.divider()
-
             st.subheader("🔎 Feature Importance (XGBoost)")
 
-            fi_img = clinical_asset("severity_feature_importance_xgb.png")
+            fi_img = clinical_asset(
+                "severity_feature_importance_xgb.png"
+            )
             if fi_img:
-                st.image(fi_img, use_container_width=True)
+                st.image(
+                    fi_img,
+                    use_container_width=True
+                )
             else:
                 st.info("Feature importance image not available.")
 
-
         # =====================================================================
-        # IMPORTANT PLOTS TAB
+        # IMPORTANT PLOTS
         # =====================================================================
 
         with tab_clin_visuals:
@@ -6853,38 +7098,50 @@ if main_clinical_screening:
 
             st.write(
                 """
-                Key exploratory visualisations from the CKD Severity
-                dataset analysis.
+                Key exploratory visualisations from the CKD Severity dataset
+                analysis.
                 """
             )
 
             st.divider()
-
             st.subheader("🎯 Severity Class Distribution")
 
-            target_dist_img = clinical_asset("severity_target_distribution.png")
+            target_dist_img = clinical_asset(
+                "severity_target_distribution.png"
+            )
             if target_dist_img:
-                st.image(target_dist_img, use_container_width=True)
+                st.image(
+                    target_dist_img,
+                    use_container_width=True
+                )
             else:
                 st.info("Target distribution image not available.")
 
             st.divider()
-
             st.subheader("🔗 Correlation Heatmap")
 
-            corr_img = clinical_asset("severity_correlation_heatmap.png")
+            corr_img = clinical_asset(
+                "severity_correlation_heatmap.png"
+            )
             if corr_img:
-                st.image(corr_img, use_container_width=True)
+                st.image(
+                    corr_img,
+                    use_container_width=True
+                )
             else:
                 st.info("Correlation heatmap image not available.")
 
             st.divider()
-
             st.subheader("🏆 Top Variables Associated with CKD")
 
-            top_corr_img = clinical_asset("severity_top_correlated_features.png")
+            top_corr_img = clinical_asset(
+                "severity_top_correlated_features.png"
+            )
             if top_corr_img:
-                st.image(top_corr_img, use_container_width=True)
+                st.image(
+                    top_corr_img,
+                    use_container_width=True
+                )
             else:
                 st.info("Top correlated features image not available.")
 
