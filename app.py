@@ -5543,914 +5543,56 @@ if main_early_screening:
 if is_insurance_section:
     with tab_insurance:
 
-
         st.title("🏥 Insurance Analytics")
-        st.write("Insurance-risk analysis from the SVM validation predictions. This section is intentionally separate from CKD Visualisations.")
-
-
-            # =========================================================================
-        # SECTION 10.1 : HEADER
-        # =========================================================================
-
-        st.header(
-            "🛡️ Insurance & CKD Risk Analysis"
-        )
-
         st.write(
-            """
-            Visual exploration of the relationship between predicted CKD risk,
-            health-insurance status, demographics and household income.
-            """
+            "Insurance portfolio analysis using the same CKD-risk predictions and "
+            "insurance segmentation already created in Early Screening."
         )
 
+        # =====================================================================
+        # USE THE EXISTING EARLY-SCREENING INSURANCE ANALYSIS
+        # =====================================================================
+        # No second dataset, no second prediction pass, and no upload fallback.
+        # The dedicated Insurance pathway reuses the exact dataframe produced
+        # by the Early Screening CKD Risk Analysis section.
+        # =====================================================================
+        early_insurance_analysis = st.session_state.get(
+            "early_screening_insurance_analysis"
+        )
 
-        # =========================================================================
-        # SECTION 10.2 : PREPARE INSURANCE ANALYSIS DATA
-        # =========================================================================
-
-        if (
-            "x_valid" not in globals()
-            or x_valid is None
-            or "y_pred_svm" not in globals()
-            or y_pred_svm is None
-        ):
-
+        if early_insurance_analysis is None or early_insurance_analysis.empty:
             st.info(
-                "The Insurance tab is connected to the shared validation/SVM evaluation."
+                "Complete the Early Screening prediction first. "
+                "The Insurance Analytics pathway then uses those same Early Screening "
+                "predictions for all insurance plots and insights."
             )
-
+        elif "Health_Insurance" not in early_insurance_analysis.columns:
+            st.error("Health_Insurance is missing from the Early Screening analysis data.")
         else:
+            portfolio = early_insurance_analysis.copy()
 
-            insurance_analysis = x_valid.copy()
+            # Ensure the same display labels used throughout the Early Screening
+            # insurance analysis are present.
+            if "Risk_Level" not in portfolio.columns and "Predicted_CKD" in portfolio.columns:
+                portfolio["Risk_Level"] = portfolio["Predicted_CKD"].replace({
+                    "Low CKD Risk": "Low Risk",
+                    "High CKD Risk": "High Risk"
+                })
 
-
-            # ---------------------------------------------------------------------
-            # PREDICTED CKD
-            # ---------------------------------------------------------------------
-
-            insurance_analysis["Predicted_CKD"] = (
-                y_pred_svm
-            )
-
-
-            insurance_analysis["Predicted_CKD"] = (
-                insurance_analysis["Predicted_CKD"]
-                .replace(
-                    {
-                        0: "Low CKD Risk",
-                        1: "High CKD Risk"
-                    }
-                )
-            )
-
-
-            # ---------------------------------------------------------------------
-            # HEALTH INSURANCE LABEL
-            # ---------------------------------------------------------------------
-
-            if "Health_Insurance" in insurance_analysis.columns:
-
-                insurance_analysis["Health_Insurance"] = (
-                    insurance_analysis["Health_Insurance"]
-                    .replace(
-                        {
-                            0: "No Insurance",
-                            1: "Has Insurance"
-                        }
-                    )
-                )
-
-
-            # ---------------------------------------------------------------------
-            # CREATE RISK GROUP
-            # ---------------------------------------------------------------------
-
-            if "Health_Insurance" in insurance_analysis.columns:
-
-                insurance_analysis["Risk_Group"] = (
-
-                    insurance_analysis[
-                        "Predicted_CKD"
-                    ].astype(str)
-
+            if "Risk_Group" not in portfolio.columns:
+                portfolio["Risk_Group"] = (
+                    portfolio["Predicted_CKD"].astype(str)
                     + " | "
-
-                    + insurance_analysis[
-                        "Health_Insurance"
-                    ].astype(str)
-
+                    + portfolio["Health_Insurance"].astype(str)
                 )
 
-
-            # =========================================================================
-            # SECTION 10.3 : INSURANCE × CKD RISK SUMMARY
-            # =========================================================================
-
-            st.divider()
-
-            st.subheader(
-                "📊 Insurance and CKD Risk Summary"
+            st.success(
+                "✅ Insurance Analytics is using the existing Early Screening SVM insurance analysis."
             )
 
-
-            if "Health_Insurance" in insurance_analysis.columns:
-
-                insured_count = (
-                    insurance_analysis[
-                        "Health_Insurance"
-                    ]
-                    .eq("Has Insurance")
-                    .sum()
-                )
-
-
-                uninsured_count = (
-                    insurance_analysis[
-                        "Health_Insurance"
-                    ]
-                    .eq("No Insurance")
-                    .sum()
-                )
-
-
-                high_risk_count = (
-                    insurance_analysis[
-                        "Predicted_CKD"
-                    ]
-                    .eq("High CKD Risk")
-                    .sum()
-                )
-
-
-                summary_col1, \
-                summary_col2, \
-                summary_col3 = st.columns(3)
-
-
-                with summary_col1:
-
-                    st.metric(
-                        "Has Insurance",
-                        f"{insured_count:,}"
-                    )
-
-
-                with summary_col2:
-
-                    st.metric(
-                        "No Insurance",
-                        f"{uninsured_count:,}"
-                    )
-
-
-                with summary_col3:
-
-                    st.metric(
-                        "High CKD Risk",
-                        f"{high_risk_count:,}"
-                    )
-
-
-            # =========================================================================
-            # SECTION 10.4 : INSURANCE STATUS DISTRIBUTION
-            # =========================================================================
-
-            if "Health_Insurance" in insurance_analysis.columns:
-
-                st.divider()
-
-                st.subheader(
-                    "🛡️ Health Insurance Distribution"
-                )
-
-
-                insurance_counts = (
-                    insurance_analysis[
-                        "Health_Insurance"
-                    ]
-                    .value_counts()
-                )
-
-
-                fig_insurance_dist = px.bar(
-                    x=insurance_counts.index,
-                    y=insurance_counts.values,
-                    color=insurance_counts.index,
-                    color_discrete_sequence=["#2563EB", "#F59E0B", "#10B981", "#8B5CF6", "#EC4899", "#06B6D4"],
-                    labels={"x": "Health Insurance Status", "y": "Number of Patients"},
-                    title="Health Insurance Distribution"
-                )
-                fig_insurance_dist.update_layout(height=450, showlegend=False)
-                st.plotly_chart(fig_insurance_dist, use_container_width=True)
-
-
-            # =========================================================================
-            # SECTION 10.5 : CKD RISK × INSURANCE
-            # =========================================================================
-
-            if "Health_Insurance" in insurance_analysis.columns:
-
-                st.divider()
-
-                st.subheader(
-                    "⚠️ CKD Risk by Insurance Status"
-                )
-
-
-                insurance_risk_table = pd.crosstab(
-                    insurance_analysis[
-                        "Health_Insurance"
-                    ],
-                    insurance_analysis[
-                        "Predicted_CKD"
-                    ]
-                )
-
-
-                st.dataframe(
-                    insurance_risk_table,
-                    use_container_width=True
-                )
-
-
-                fig_insurance_risk, ax_insurance_risk = plt.subplots(
-                    figsize=(10, 6)
-                )
-
-
-                insurance_risk_table.plot(
-                    kind="bar",
-                    ax=ax_insurance_risk,
-                    edgecolor="black"
-                )
-
-
-                ax_insurance_risk.set_xlabel(
-                    "Health Insurance Status",
-                    fontsize=12
-                )
-
-
-                ax_insurance_risk.set_ylabel(
-                    "Number of Patients",
-                    fontsize=12
-                )
-
-
-                ax_insurance_risk.set_title(
-                    "Predicted CKD Risk by Insurance Status",
-                    fontsize=15,
-                    fontweight="bold"
-                )
-
-
-                ax_insurance_risk.legend(
-                    title="Predicted CKD"
-                )
-
-
-                ax_insurance_risk.grid(
-                    axis="y",
-                    alpha=0.3
-                )
-
-
-                plt.xticks(
-                    rotation=0
-                )
-
-
-                plt.tight_layout()
-
-
-                st.pyplot(
-                    fig_insurance_risk
-                )
-
-
-                plt.close(
-                    fig_insurance_risk
-                )
-
-
-            # =========================================================================
-            # SECTION 10.6 : RISK GROUP DISTRIBUTION
-            # =========================================================================
-
-            if "Risk_Group" in insurance_analysis.columns:
-
-                st.divider()
-
-                st.subheader(
-                    "🎯 Insurance-Based CKD Risk Groups"
-                )
-
-
-                risk_group_counts = (
-                    insurance_analysis[
-                        "Risk_Group"
-                    ]
-                    .value_counts()
-                )
-
-
-                fig_risk_group, ax_risk_group = plt.subplots(
-                    figsize=(11, 6)
-                )
-
-
-                ax_risk_group.bar(
-                    risk_group_counts.index,
-                    risk_group_counts.values,
-                    edgecolor="black",
-                    linewidth=0.8
-                )
-
-
-                ax_risk_group.set_xlabel(
-                    "Risk Group",
-                    fontsize=12
-                )
-
-
-                ax_risk_group.set_ylabel(
-                    "Number of Patients",
-                    fontsize=12
-                )
-
-
-                ax_risk_group.set_title(
-                    "CKD Risk Groups by Insurance Status",
-                    fontsize=15,
-                    fontweight="bold"
-                )
-
-
-                ax_risk_group.tick_params(
-                    axis="x",
-                    rotation=20
-                )
-
-
-                ax_risk_group.grid(
-                    axis="y",
-                    alpha=0.3
-                )
-
-
-                plt.tight_layout()
-
-
-                st.pyplot(
-                    fig_risk_group
-                )
-
-
-                plt.close(
-                    fig_risk_group
-                )
-
-
-                st.dataframe(
-                    risk_group_counts
-                    .rename(
-                        "Patient Count"
-                    )
-                    .reset_index()
-                    .rename(
-                        columns={
-                            "index": "Risk Group"
-                        }
-                    ),
-                    use_container_width=True,
-                    hide_index=True
-                )
-
-
-            # =========================================================================
-            # SECTION 10.7 : INCOME × AGE × BMI RISK LANDSCAPE
-            # =========================================================================
-
-            required_portfolio_columns = [
-
-                "Annual_Household_Income_USD",
-
-                "Age",
-
-                "BMI",
-
-                "Risk_Group"
-
-            ]
-
-
-            portfolio_columns_available = all(
-                column in insurance_analysis.columns
-                for column in required_portfolio_columns
-            )
-
-
-            if portfolio_columns_available:
-
-                st.divider()
-
-                st.subheader(
-                    "🌐 Insurance Portfolio Risk Landscape"
-                )
-
-                st.caption(
-                    """
-                    Household income is shown against age, while BMI represents
-                    the relative size of each observation and Risk Group
-                    identifies the CKD-insurance segment.
-                    """
-                )
-
-
-                fig_portfolio, ax_portfolio = plt.subplots(
-                    figsize=(12, 8)
-                )
-
-
-                risk_groups = (
-                    insurance_analysis[
-                        "Risk_Group"
-                    ]
-                    .dropna()
-                    .unique()
-                )
-
-
-                for risk_group in risk_groups:
-
-                    subset = insurance_analysis[
-                        insurance_analysis[
-                            "Risk_Group"
-                        ] == risk_group
-                    ]
-
-
-                    ax_portfolio.scatter(
-                        subset[
-                            "Annual_Household_Income_USD"
-                        ],
-
-                        subset[
-                            "Age"
-                        ],
-
-                        s=(
-                            subset[
-                                "BMI"
-                            ].clip(
-                                lower=10
-                            )
-                            * 8
-                        ),
-
-                        alpha=0.55,
-
-                        label=risk_group
-                    )
-
-
-                ax_portfolio.set_xlabel(
-                    "Annual Household Income (USD)",
-                    fontsize=12
-                )
-
-
-                ax_portfolio.set_ylabel(
-                    "Age",
-                    fontsize=12
-                )
-
-
-                ax_portfolio.set_title(
-                    "Insurance Portfolio Risk Landscape",
-                    fontsize=15,
-                    fontweight="bold"
-                )
-
-
-                ax_portfolio.legend(
-                    title="Risk Group",
-                    bbox_to_anchor=(
-                        1.02,
-                        1
-                    ),
-                    loc="upper left"
-                )
-
-
-                ax_portfolio.grid(
-                    alpha=0.25
-                )
-
-
-                plt.tight_layout()
-
-
-                st.pyplot(
-                    fig_portfolio
-                )
-
-
-                plt.close(
-                    fig_portfolio
-                )
-
-
-            else:
-
-                st.info(
-                    """
-                    The portfolio risk landscape requires:
-
-                    Annual_Household_Income_USD
-                    Age
-                    BMI
-                    Risk_Group
-                    """
-                )
-
-
-            # =========================================================================
-            # SECTION 10.8 : INSURANCE RISK TABLE
-            # =========================================================================
-
-            st.divider()
-
-            st.subheader(
-                "📋 Insurance Risk Portfolio"
-            )
-
-
-            display_columns = [
-
-                "Predicted_CKD",
-
-                "Health_Insurance",
-
-                "Risk_Group"
-
-            ]
-
-
-            display_columns = [
-
-                column
-
-                for column in display_columns
-
-                if column in insurance_analysis.columns
-
-            ]
-
-
-            if display_columns:
-
-                st.dataframe(
-                    insurance_analysis[
-                        display_columns
-                    ].head(100),
-                    use_container_width=True,
-                    hide_index=True
-                )
-
-
-        # =============================================================================
-
-
-    # =============================================================================
-    # STEP 10B : EXISTING EARLY-SCREENING INTERACTIVE INSURANCE ANALYSIS
-    # =============================================================================
-    # The original Insurance analysis is retained. Figures are cached in
-    # session_state so Streamlit does not rebuild every Plotly object on every
-    # rerun (especially when the user changes an unrelated input).
-
-if is_insurance_section:
-    with tab_insurance:
-
-        st.title("🏥 Insurance Analytics")
-
-        st.write(
-            "Insurance portfolio analysis connected to the final CKD Linear SVM "
-            "validation predictions."
-        )
-
-        # ---------------------------------------------------------------------
-        # INTEGRATED EARLY-SCREENING INSURANCE ANALYSIS
-        # ---------------------------------------------------------------------
-        # When Early Screening has already built its validation risk-analysis
-        # dataframe, Insurance Analytics reuses that exact analysis here so the
-        # insurance plots and insights are genuinely integrated rather than
-        # being a separate or duplicated calculation.
-        early_insurance_analysis = st.session_state.get("early_screening_insurance_analysis")
-
-        if early_insurance_analysis is not None and not early_insurance_analysis.empty:
-            integrated = early_insurance_analysis.copy()
-
-            if "Health_Insurance" in integrated.columns and "Predicted_CKD" in integrated.columns:
-                st.success("✅ Early Screening insurance analysis is integrated into this pathway.")
-
-                st.subheader("🛡️ Early Screening → Insurance Analytics")
-                st.caption(
-                    "These plots and summaries reuse the same validation-population CKD predictions "
-                    "and insurance variables generated in Early Screening."
-                )
-
-                # Exact insurance × CKD-risk segmentation from Early Screening.
-                insurance_risk_table_integrated = pd.crosstab(
-                    integrated["Health_Insurance"],
-                    integrated["Predicted_CKD"]
-                )
-
-                c_int1, c_int2 = st.columns(2)
-                with c_int1:
-                    st.markdown("**Insurance × CKD Risk Counts**")
-                    st.dataframe(insurance_risk_table_integrated, use_container_width=True)
-                with c_int2:
-                    pct_integrated = (
-                        insurance_risk_table_integrated
-                        .div(insurance_risk_table_integrated.sum(axis=1), axis=0)
-                        .mul(100)
-                        .round(2)
-                    )
-                    st.markdown("**Within-Insurance-Group Percentages**")
-                    st.dataframe(pct_integrated, use_container_width=True)
-
-                fig_int_risk, ax_int_risk = plt.subplots(figsize=(10, 6))
-                insurance_risk_table_integrated.plot(
-                    kind="bar", ax=ax_int_risk, edgecolor="black", linewidth=0.8
-                )
-                ax_int_risk.set_xlabel("Health Insurance Status")
-                ax_int_risk.set_ylabel("Number of Patients")
-                ax_int_risk.set_title("Predicted CKD Risk by Insurance Status", fontsize=15, fontweight="bold")
-                ax_int_risk.grid(axis="y", alpha=0.3)
-                plt.xticks(rotation=0)
-                plt.tight_layout()
-                st.pyplot(fig_int_risk)
-                plt.close(fig_int_risk)
-
-                # Exact risk-group construction/visualisation from Early Screening.
-                if "Risk_Group" in integrated.columns:
-                    st.divider()
-                    st.subheader("🎯 Early Screening Insurance-Based CKD Risk Groups")
-                    risk_group_integrated = integrated["Risk_Group"].value_counts()
-
-                    fig_int_groups, ax_int_groups = plt.subplots(figsize=(11, 6))
-                    ax_int_groups.bar(
-                        risk_group_integrated.index,
-                        risk_group_integrated.values,
-                        edgecolor="black", linewidth=0.8
-                    )
-                    ax_int_groups.set_xlabel("Risk Group", fontsize=12)
-                    ax_int_groups.set_ylabel("Number of Patients", fontsize=12)
-                    ax_int_groups.set_title(
-                        "CKD Risk Groups by Insurance Status", fontsize=15, fontweight="bold"
-                    )
-                    ax_int_groups.tick_params(axis="x", rotation=20)
-                    ax_int_groups.grid(axis="y", alpha=0.3)
-                    plt.tight_layout()
-                    st.pyplot(fig_int_groups)
-                    plt.close(fig_int_groups)
-
-                    st.dataframe(
-                        risk_group_integrated.rename("Patient Count").reset_index()
-                        .rename(columns={"index": "Risk Group"}),
-                        use_container_width=True, hide_index=True
-                    )
-
-                # Derived insights are calculated directly from the integrated
-                # Early Screening analysis; they are not hard-coded claims.
-                st.divider()
-                st.subheader("💡 Early Screening Insurance Insights")
-                insight_lines = []
-
-                total_int = len(integrated)
-                high_int = (integrated["Predicted_CKD"] == "High CKD Risk").sum()
-                no_ins_int = (integrated["Health_Insurance"] == "No Insurance").sum()
-                has_ins_int = (integrated["Health_Insurance"] == "Has Insurance").sum()
-                high_no_int = (
-                    (integrated["Health_Insurance"] == "No Insurance")
-                    & (integrated["Predicted_CKD"] == "High CKD Risk")
-                ).sum()
-
-                if total_int:
-                    insight_lines.append(
-                        f"**Overall CKD-risk profile:** {high_int:,} of {total_int:,} validation observations "
-                        f"({high_int / total_int * 100:.2f}%) were classified as High CKD Risk by the Early Screening SVM."
-                    )
-
-                if no_ins_int:
-                    uninsured_high_pct = high_no_int / no_ins_int * 100
-                    insight_lines.append(
-                        f"**Among uninsured observations:** {high_no_int:,} of {no_ins_int:,} "
-                        f"({uninsured_high_pct:.2f}%) were classified as High CKD Risk."
-                    )
-
-                if has_ins_int:
-                    high_yes_int = (
-                        (integrated["Health_Insurance"] == "Has Insurance")
-                        & (integrated["Predicted_CKD"] == "High CKD Risk")
-                    ).sum()
-                    insured_high_pct = high_yes_int / has_ins_int * 100
-                    insight_lines.append(
-                        f"**Among insured observations:** {high_yes_int:,} of {has_ins_int:,} "
-                        f"({insured_high_pct:.2f}%) were classified as High CKD Risk."
-                    )
-
-                if no_ins_int and has_ins_int:
-                    uninsured_high_pct = high_no_int / no_ins_int * 100
-                    high_yes_int = (
-                        (integrated["Health_Insurance"] == "Has Insurance")
-                        & (integrated["Predicted_CKD"] == "High CKD Risk")
-                    ).sum()
-                    insured_high_pct = high_yes_int / has_ins_int * 100
-                    diff = uninsured_high_pct - insured_high_pct
-                    direction = "higher" if diff > 0 else "lower"
-                    insight_lines.append(
-                        f"**Between insurance groups:** the observed High CKD Risk proportion was "
-                        f"{abs(diff):.2f} percentage points {direction} in the uninsured group than in the insured group."
-                    )
-
-                st.markdown("\n\n".join(["• " + x for x in insight_lines]))
-                st.caption(
-                    "These are descriptive associations within the validation population and do not establish "
-                    "that insurance status causes CKD risk or justify individual insurance decisions."
-                )
-
-                st.divider()
-
-        if not evaluation_loaded:
-
-            st.warning(
-                "The shared CKD evaluation dataset is not available in this deployment. "
-                "Insurance Analytics can still be evaluated by supplying the same CKD "
-                "evaluation CSV used for the project."
-            )
-            st.caption(
-                "Use a compatible CKD evaluation CSV containing the SVM input features, "
-                "including Health_Insurance and a CKD target column (e.g. CKD_Any, CKD, "
-                "CKD_Stage or TARGET). The uploaded file is used only for this session."
-            )
-
-            insurance_upload = st.file_uploader(
-                "Upload CKD evaluation dataset (CSV)",
-                type=["csv"],
-                key="insurance_evaluation_upload"
-            )
-
-            if insurance_upload is not None and final_svm_pipeline is not None:
-                try:
-                    uploaded_df = pd.read_csv(insurance_upload)
-                    uploaded_df = _add_early_screening_features(uploaded_df)
-                    uploaded_df, uploaded_y = _build_project_target(uploaded_df)
-
-                    # Find the fitted raw-feature schema from the saved pipeline.
-                    uploaded_pre = None
-                    if hasattr(final_svm_pipeline, "named_steps"):
-                        for step in final_svm_pipeline.named_steps.values():
-                            if hasattr(step, "feature_names_in_"):
-                                uploaded_pre = step
-                                break
-                    if uploaded_pre is None or not hasattr(uploaded_pre, "feature_names_in_"):
-                        raise ValueError("The saved SVM pipeline does not expose its raw feature schema.")
-
-                    expected_uploaded = list(uploaded_pre.feature_names_in_)
-                    missing_uploaded = [c for c in expected_uploaded if c not in uploaded_df.columns]
-                    if missing_uploaded:
-                        raise ValueError(
-                            "The uploaded dataset is missing required SVM columns: "
-                            + ", ".join(missing_uploaded[:12])
-                            + (" ..." if len(missing_uploaded) > 12 else "")
-                        )
-
-                    upload_x = uploaded_df[expected_uploaded].copy()
-                    upload_pred = final_svm_pipeline.predict(upload_x)
-
-                    x_valid_local = upload_x.reset_index(drop=True)
-                    y_pred_local = pd.Series(upload_pred).reset_index(drop=True)
-
-                    if "Health_Insurance" not in x_valid_local.columns:
-                        raise ValueError("Health_Insurance is missing from the uploaded dataset.")
-
-                    insurance_analysis = x_valid_local.copy()
-                    insurance_analysis["Predicted_CKD"] = y_pred_local
-                    insurance_analysis["Predicted_CKD"] = insurance_analysis["Predicted_CKD"].replace({
-                        0: "Low CKD Risk",
-                        1: "High CKD Risk"
-                    })
-                    insurance_analysis["Health_Insurance"] = insurance_analysis["Health_Insurance"].replace({
-                        0: "No Insurance",
-                        1: "Has Insurance"
-                    })
-                    insurance_analysis["Risk_Level"] = insurance_analysis["Predicted_CKD"].replace({
-                        "Low CKD Risk": "Low Risk",
-                        "High CKD Risk": "High Risk"
-                    })
-                    insurance_analysis["Risk_Group"] = (
-                        insurance_analysis["Predicted_CKD"].astype(str)
-                        + " | "
-                        + insurance_analysis["Health_Insurance"].astype(str)
-                    )
-
-                    # Continue through the same existing insurance visualisations
-                    # using the session-local uploaded evaluation dataframe.
-                    portfolio = insurance_analysis
-                    total_members = len(portfolio)
-                    high_risk = (portfolio["Risk_Level"] == "High Risk").sum()
-                    low_risk = (portfolio["Risk_Level"] == "Low Risk").sum()
-                    insured = (portfolio["Health_Insurance"] == "Has Insurance").sum()
-                    uninsured = (portfolio["Health_Insurance"] == "No Insurance").sum()
-
-                    st.success(f"Loaded {total_members:,} evaluation records for Insurance Analytics.")
-                    c1, c2, c3, c4, c5 = st.columns(5)
-                    with c1: st.metric("Total Members", f"{total_members:,}")
-                    with c2: st.metric("Low Risk", f"{low_risk:,}")
-                    with c3: st.metric("High Risk", f"{high_risk:,}")
-                    with c4: st.metric("Insured", f"{insured:,}")
-                    with c5: st.metric("Uninsured", f"{uninsured:,}")
-
-                    st.divider()
-                    st.subheader("📈 Portfolio Risk Distribution")
-                    risk_distribution = portfolio["Risk_Level"].value_counts().reset_index()
-                    risk_distribution.columns = ["Risk Level", "Members"]
-                    fig_risk_u, ax_risk_u = plt.subplots(figsize=(8, 5))
-                    ax_risk_u.bar(risk_distribution["Risk Level"], risk_distribution["Members"], edgecolor="black")
-                    ax_risk_u.set_xlabel("Risk Level")
-                    ax_risk_u.set_ylabel("Number of Members")
-                    ax_risk_u.set_title("Portfolio Risk Distribution", fontsize=14, fontweight="bold")
-                    ax_risk_u.grid(axis="y", linestyle="--", alpha=0.4)
-                    plt.tight_layout()
-                    st.pyplot(fig_risk_u)
-                    plt.close(fig_risk_u)
-
-                    st.divider()
-                    st.subheader("🛡️ Portfolio Risk by Insurance Status")
-                    insurance_risk_u = pd.crosstab(portfolio["Health_Insurance"], portfolio["Risk_Level"])
-                    st.dataframe(insurance_risk_u, use_container_width=True)
-
-                    left_u, right_u = st.columns(2)
-                    with left_u:
-                        portfolio_percentage_u = (insurance_risk_u.div(insurance_risk_u.sum(axis=1), axis=0) * 100).round(2)
-                        st.write("**Within-insurance-group percentage**")
-                        st.dataframe(portfolio_percentage_u, use_container_width=True)
-                    with right_u:
-                        fig_ur, ax_ur = plt.subplots(figsize=(8, 5))
-                        insurance_risk_u.plot(kind="bar", ax=ax_ur, edgecolor="black")
-                        ax_ur.set_xlabel("Health Insurance Status")
-                        ax_ur.set_ylabel("Number of Members")
-                        ax_ur.set_title("Predicted CKD Risk by Insurance Status", fontsize=14, fontweight="bold")
-                        ax_ur.grid(axis="y", alpha=0.3)
-                        plt.xticks(rotation=0)
-                        plt.tight_layout()
-                        st.pyplot(fig_ur)
-                        plt.close(fig_ur)
-
-                    st.info("This upload fallback changes only the data source for Insurance Analytics; the original shared evaluation path remains unchanged.")
-
-                except Exception as upload_error:
-                    st.error(f"Unable to use the uploaded evaluation dataset: {upload_error}")
-
-        elif "Health_Insurance" not in x_valid.columns:
-
-            st.error(
-                "Health_Insurance is missing from the validation feature set."
-            )
-
-        else:
-
-            portfolio = x_valid.copy()
-
-            portfolio["Predicted_CKD"] = y_pred_svm
-
-            portfolio["Predicted_CKD"] = portfolio["Predicted_CKD"].replace({
-                0: "Low CKD Risk",
-                1: "High CKD Risk"
-            })
-
-            portfolio["Health_Insurance"] = portfolio["Health_Insurance"].replace({
-                0: "No Insurance",
-                1: "Has Insurance"
-            })
-
-            portfolio["Risk_Level"] = portfolio["Predicted_CKD"].replace({
-                "Low CKD Risk": "Low Risk",
-                "High CKD Risk": "High Risk"
-            })
-
-            portfolio["Risk_Group"] = (
-                portfolio["Predicted_CKD"].astype(str)
-                + " | "
-                + portfolio["Health_Insurance"].astype(str)
-            )
-
-            # ---------------------------------------------------------------------
-            # KPI SUMMARY
-            # ---------------------------------------------------------------------
-
+            # =================================================================
+            # PORTFOLIO SUMMARY
+            # =================================================================
             st.divider()
             st.subheader("📊 Insurance Portfolio Summary")
 
@@ -6461,7 +5603,6 @@ if is_insurance_section:
             uninsured = (portfolio["Health_Insurance"] == "No Insurance").sum()
 
             c1, c2, c3, c4, c5 = st.columns(5)
-
             with c1:
                 st.metric("Total Members", f"{total_members:,}")
             with c2:
@@ -6473,16 +5614,50 @@ if is_insurance_section:
             with c5:
                 st.metric("Uninsured", f"{uninsured:,}")
 
-            # ---------------------------------------------------------------------
-            # NOTEBOOK RISK DISTRIBUTION
-            # ---------------------------------------------------------------------
+            # =================================================================
+            # EARLY-SCREENING INSURANCE × CKD RISK
+            # =================================================================
+            st.divider()
+            st.subheader("🛡️ Predicted CKD Risk by Insurance Status")
 
+            insurance_risk = pd.crosstab(
+                portfolio["Health_Insurance"],
+                portfolio["Risk_Level"]
+            )
+            portfolio_percentage = (
+                insurance_risk.div(insurance_risk.sum(axis=1), axis=0) * 100
+            ).round(2)
+
+            left, right = st.columns(2)
+            with left:
+                st.markdown("**Counts**")
+                st.dataframe(insurance_risk, use_container_width=True)
+            with right:
+                st.markdown("**Within-insurance-group percentage**")
+                st.dataframe(portfolio_percentage, use_container_width=True)
+
+            fig_stacked, ax_stacked = plt.subplots(figsize=(9, 5))
+            insurance_risk.plot(kind="bar", stacked=True, ax=ax_stacked, edgecolor="black")
+            ax_stacked.set_title(
+                "Portfolio Risk by Insurance Status",
+                fontsize=14,
+                fontweight="bold"
+            )
+            ax_stacked.set_xlabel("Health Insurance")
+            ax_stacked.set_ylabel("Members")
+            ax_stacked.tick_params(axis="x", rotation=0)
+            ax_stacked.grid(axis="y", linestyle="--", alpha=0.4)
+            plt.tight_layout()
+            st.pyplot(fig_stacked)
+            plt.close(fig_stacked)
+
+            # =================================================================
+            # PORTFOLIO RISK DISTRIBUTION
+            # =================================================================
             st.divider()
             st.subheader("📈 Portfolio Risk Distribution")
 
-            risk_distribution = (
-                portfolio["Risk_Level"].value_counts().reset_index()
-            )
+            risk_distribution = portfolio["Risk_Level"].value_counts().reset_index()
             risk_distribution.columns = ["Risk Level", "Members"]
 
             fig_risk, ax_risk = plt.subplots(figsize=(8, 5))
@@ -6503,65 +5678,50 @@ if is_insurance_section:
             st.pyplot(fig_risk)
             plt.close(fig_risk)
 
-            # ---------------------------------------------------------------------
-            # NOTEBOOK INSURANCE × RISK
-            # ---------------------------------------------------------------------
-
+            # =================================================================
+            # INSURANCE-BASED CKD RISK GROUPS
+            # =================================================================
             st.divider()
-            st.subheader("🛡️ Portfolio Risk by Insurance Status")
+            st.subheader("🎯 Insurance-Based CKD Risk Groups")
 
-            insurance_risk = pd.crosstab(
-                portfolio["Health_Insurance"],
-                portfolio["Risk_Level"]
+            risk_group_counts = portfolio["Risk_Group"].value_counts()
+
+            fig_risk_group, ax_risk_group = plt.subplots(figsize=(11, 6))
+            ax_risk_group.bar(
+                risk_group_counts.index,
+                risk_group_counts.values,
+                edgecolor="black",
+                linewidth=0.8
             )
-
-            portfolio_percentage = (
-                insurance_risk.div(insurance_risk.sum(axis=1), axis=0) * 100
-            ).round(2)
-
-            left, right = st.columns(2)
-
-            with left:
-                st.dataframe(
-                    insurance_risk,
-                    use_container_width=True
-                )
-
-            with right:
-                st.dataframe(
-                    portfolio_percentage,
-                    use_container_width=True
-                )
-
-            fig_stacked, ax_stacked = plt.subplots(figsize=(9, 5))
-            insurance_risk.plot(
-                kind="bar",
-                stacked=True,
-                ax=ax_stacked,
-                edgecolor="black"
-            )
-            ax_stacked.set_title(
-                "Portfolio Risk by Insurance Status",
-                fontsize=14,
+            ax_risk_group.set_xlabel("Risk Group", fontsize=12)
+            ax_risk_group.set_ylabel("Number of Patients", fontsize=12)
+            ax_risk_group.set_title(
+                "CKD Risk Groups by Insurance Status",
+                fontsize=15,
                 fontweight="bold"
             )
-            ax_stacked.set_xlabel("Health Insurance")
-            ax_stacked.set_ylabel("Members")
-            ax_stacked.tick_params(axis="x", rotation=0)
-            ax_stacked.grid(axis="y", linestyle="--", alpha=0.4)
+            ax_risk_group.tick_params(axis="x", rotation=20)
+            ax_risk_group.grid(axis="y", alpha=0.3)
             plt.tight_layout()
-            st.pyplot(fig_stacked)
-            plt.close(fig_stacked)
+            st.pyplot(fig_risk_group)
+            plt.close(fig_risk_group)
 
-            # ---------------------------------------------------------------------
-            # NOTEBOOK CIRCULAR / EXECUTIVE SUNBURST
-            # ---------------------------------------------------------------------
+            st.dataframe(
+                risk_group_counts.rename("Patient Count")
+                .reset_index()
+                .rename(columns={"index": "Risk Group"}),
+                use_container_width=True,
+                hide_index=True
+            )
 
+            # =================================================================
+            # EXECUTIVE SUNBURST — EXISTING NOTEBOOK PLOT
+            # =================================================================
             st.divider()
             st.subheader("⭕ Executive Insurance Portfolio — Circular Analysis")
             st.caption(
-                "This is the circular Sunburst visualisation from the notebook, "
-                "integrated into the Insurance Analytics tab."
+                "The existing notebook Sunburst visualisation, applied directly "
+                "to the Early Screening insurance-risk segmentation."
             )
 
             sunburst_columns = [
@@ -6573,11 +5733,7 @@ if is_insurance_section:
             ]
 
             if all(column in portfolio.columns for column in sunburst_columns):
-
-                dashboard = portfolio.dropna(
-                    subset=sunburst_columns
-                ).copy()
-
+                dashboard = portfolio.dropna(subset=sunburst_columns).copy()
                 for column in sunburst_columns:
                     dashboard[column] = dashboard[column].astype(str)
 
@@ -6603,7 +5759,6 @@ if is_insurance_section:
                     maxdepth=5,
                     title="<b>Executive Insurance Portfolio Analysis</b>"
                 )
-
                 fig_sunburst.update_traces(
                     textinfo="label+percent parent",
                     insidetextorientation="radial",
@@ -6614,7 +5769,6 @@ if is_insurance_section:
                         "Root: %{percentRoot:.1%}<extra></extra>"
                     )
                 )
-
                 fig_sunburst.update_layout(
                     template="plotly_white",
                     height=700,
@@ -6622,31 +5776,26 @@ if is_insurance_section:
                     font=dict(family="Arial", size=14),
                     title_x=0.5
                 )
-
-                st.plotly_chart(
-                    fig_sunburst,
-                    use_container_width=True
-                )
-
+                st.plotly_chart(fig_sunburst, use_container_width=True)
             else:
-
                 missing_sunburst = [
-                    column
-                    for column in sunburst_columns
+                    column for column in sunburst_columns
                     if column not in portfolio.columns
                 ]
-
                 st.warning(
-                    "The notebook Sunburst requires these missing columns: "
+                    "The existing notebook Sunburst requires: "
                     + ", ".join(missing_sunburst)
                 )
 
-            # ---------------------------------------------------------------------
-            # NOTEBOOK PORTFOLIO RISK LANDSCAPE
-            # ---------------------------------------------------------------------
-
+            # =================================================================
+            # INCOME × AGE × BMI PORTFOLIO LANDSCAPE
+            # =================================================================
             st.divider()
             st.subheader("🌐 Insurance Portfolio Risk Landscape")
+            st.caption(
+                "Household income is shown against age, BMI represents the relative "
+                "size of each observation, and Risk Group identifies the CKD-insurance segment."
+            )
 
             landscape_columns = [
                 "Annual_Household_Income_USD",
@@ -6661,14 +5810,18 @@ if is_insurance_section:
             ]
 
             if all(column in portfolio.columns for column in landscape_columns):
-
                 fig_landscape = px.scatter(
                     portfolio,
                     x="Annual_Household_Income_USD",
                     y="Age",
                     size="BMI",
                     color="Risk_Group",
-                    color_discrete_map={"Low Risk": "#2563EB", "High Risk": "#DC2626", "Low": "#10B981", "High": "#F59E0B"},
+                    color_discrete_map={
+                        "Low CKD Risk | Has Insurance": "#16A34A",
+                        "Low CKD Risk | No Insurance": "#0EA5E9",
+                        "High CKD Risk | Has Insurance": "#F97316",
+                        "High CKD Risk | No Insurance": "#DC2626"
+                    },
                     symbol="Health_Insurance",
                     hover_name="Country",
                     hover_data={
@@ -6682,53 +5835,38 @@ if is_insurance_section:
                     },
                     title="<b>Insurance Portfolio Risk Landscape</b>"
                 )
-
                 fig_landscape.update_layout(
                     template="plotly_white",
                     height=650,
                     title_x=0.5
                 )
+                st.plotly_chart(fig_landscape, use_container_width=True)
 
-                st.plotly_chart(
-                    fig_landscape,
-                    use_container_width=True
-                )
-
-            else:
-
-                missing_landscape = [
-                    column
-                    for column in landscape_columns
-                    if column not in portfolio.columns
-                ]
-
-                st.warning(
-                    "Portfolio Risk Landscape unavailable. Missing: "
-                    + ", ".join(missing_landscape)
-                )
-
-            # ---------------------------------------------------------------------
-            # NOTEBOOK PORTFOLIO TABLE
-            # ---------------------------------------------------------------------
-
+            # =================================================================
+            # INSURANCE RISK PORTFOLIO TABLE
+            # =================================================================
             st.divider()
             st.subheader("📋 Insurance Risk Portfolio")
+            display_columns = [
+                "Predicted_CKD",
+                "Health_Insurance",
+                "Risk_Level",
+                "Risk_Group"
+            ]
+            display_columns = [
+                column for column in display_columns
+                if column in portfolio.columns
+            ]
+            if display_columns:
+                st.dataframe(
+                    portfolio[display_columns].head(100),
+                    use_container_width=True,
+                    hide_index=True
+                )
 
-            st.dataframe(
-                portfolio[[
-                    "Predicted_CKD",
-                    "Health_Insurance",
-                    "Risk_Level",
-                    "Risk_Group"
-                ]].head(100),
-                use_container_width=True,
-                hide_index=True
-            )
-
-            # ---------------------------------------------------------------------
-            # HIGH-RISK UNINSURED SEGMENT
-            # ---------------------------------------------------------------------
-
+            # =================================================================
+            # HIGH-RISK / NO-INSURANCE SEGMENT
+            # =================================================================
             high_risk_uninsured = (
                 (portfolio["Health_Insurance"] == "No Insurance")
                 & (portfolio["Predicted_CKD"] == "High CKD Risk")
@@ -6736,16 +5874,78 @@ if is_insurance_section:
 
             st.divider()
             st.subheader("⚠️ High-Risk / No-Insurance Segment")
-
             st.metric(
                 "High CKD Risk + No Insurance",
                 f"{high_risk_uninsured:,}"
             )
 
+            # =================================================================
+            # EARLY-SCREENING INSURANCE INSIGHTS
+            # =================================================================
+            st.divider()
+            st.subheader("💡 Early Screening Insurance Insights")
+
+            total_int = len(portfolio)
+            high_int = (portfolio["Predicted_CKD"] == "High CKD Risk").sum()
+            uninsured_int = (portfolio["Health_Insurance"] == "No Insurance").sum()
+            insured_int = (portfolio["Health_Insurance"] == "Has Insurance").sum()
+
+            insight_lines = []
+            if total_int > 0:
+                insight_lines.append(
+                    f"Across the Early Screening validation population, **{high_int:,} of {total_int:,} members** "
+                    f"({high_int / total_int * 100:.2f}%) were classified as **High CKD Risk** by the SVM."
+                )
+
+            if uninsured_int > 0:
+                uninsured_high_pct = (
+                    ((portfolio["Health_Insurance"] == "No Insurance")
+                     & (portfolio["Predicted_CKD"] == "High CKD Risk")).sum()
+                    / uninsured_int * 100
+                )
+                insight_lines.append(
+                    f"Within the **No Insurance** group, **{uninsured_high_pct:.2f}%** were classified as High CKD Risk."
+                )
+
+            if insured_int > 0:
+                insured_high_pct = (
+                    ((portfolio["Health_Insurance"] == "Has Insurance")
+                     & (portfolio["Predicted_CKD"] == "High CKD Risk")).sum()
+                    / insured_int * 100
+                )
+                insight_lines.append(
+                    f"Within the **Has Insurance** group, **{insured_high_pct:.2f}%** were classified as High CKD Risk."
+                )
+
+            if insured_int > 0 and uninsured_int > 0:
+                uninsured_high_n = (
+                    (portfolio["Health_Insurance"] == "No Insurance")
+                    & (portfolio["Predicted_CKD"] == "High CKD Risk")
+                ).sum()
+                insured_high_n = (
+                    (portfolio["Health_Insurance"] == "Has Insurance")
+                    & (portfolio["Predicted_CKD"] == "High CKD Risk")
+                ).sum()
+                uninsured_high_pct = uninsured_high_n / uninsured_int * 100
+                insured_high_pct = insured_high_n / insured_int * 100
+                if uninsured_high_pct > insured_high_pct:
+                    direction = "higher"
+                elif uninsured_high_pct < insured_high_pct:
+                    direction = "lower"
+                else:
+                    direction = "the same"
+                insight_lines.append(
+                    f"**Between insurance groups:** the observed High CKD Risk proportion was **{direction}** "
+                    "for the No Insurance group than for the Has Insurance group in this validation population."
+                )
+
+            if insight_lines:
+                st.markdown("\n\n".join("• " + line for line in insight_lines))
+
             st.caption(
-                "This segment is shown for population-level analytical "
-                "segmentation only and must not be used to deny or restrict "
-                "health insurance or healthcare access."
+                "These are descriptive patterns in the Early Screening validation population. "
+                "They do not establish that insurance status causes CKD risk or justify individual "
+                "insurance decisions."
             )
 
     # =============================================================================
