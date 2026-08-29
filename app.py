@@ -111,6 +111,8 @@ button[kind="primary"]{border-radius:13px!important;background:linear-gradient(1
 .kidney-illustration{background:linear-gradient(145deg,#fff,#fff0f2);border:1px solid rgba(255,255,255,.22);border-radius:24px;padding:14px 16px 12px;box-shadow:0 18px 35px rgba(35,7,14,.18);max-width:500px;margin-left:auto}
 .kidney-illustration svg{display:block;width:100%;height:auto}.kidney-caption{display:flex;justify-content:space-between;gap:14px;align-items:baseline;padding:4px 5px 0;color:#651321;font-size:12px}.kidney-caption span{color:#765861;font-weight:500;text-align:right}
 .medical-callout{background:#fff;border:1px solid #e7c5ca;border-radius:18px;padding:14px 16px;box-shadow:0 10px 24px rgba(101,19,33,.08)}
+.usage-notice{background:linear-gradient(135deg,#fff3f4 0%,#ffe6e9 48%,#fff7f7 100%);border:3px solid #8f1427;border-radius:22px;padding:20px 24px;margin:0 0 22px;box-shadow:0 14px 30px rgba(101,19,33,.14)}
+.usage-notice-title{font-size:21px;font-weight:900;color:#651321;letter-spacing:.2px;margin-bottom:7px}.usage-notice-body{font-size:15px;line-height:1.65;color:#4e262e}.usage-notice-body b{color:#741728}.usage-notice-mobile{margin-top:9px;padding-top:9px;border-top:1px solid #e7c5ca;color:#651321;font-weight:800}
 </style>
     """,
     unsafe_allow_html=True
@@ -399,6 +401,17 @@ def render_severity_visual_stepper(severity_label):
 # =============================================================================
 
 st.markdown("<div class='hero'><div style='display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);gap:24px;align-items:center'><div><div class='hero-row'><span class='kidney-mark'>🫘</span><div><div class='kicker'>RENALIS • RENAL ANALYTICS & INTELLIGENCE SYSTEM</div><h1>RENALIS</h1></div></div><p>CKD early screening, clinical severity assessment, statistical analysis, insurance intelligence and model analytics in one integrated research dashboard.</p><div class='hero-kidney-note'>Kidney-focused analytics • screening • statistics • insurance</div></div><div class='medical-callout'><b>Clinical analytics workflow</b><br><span style='color:#765861'>Early Risk → Statistical Analysis → Diagnostic Plots → Insurance Portfolio → Clinical Severity</span></div></div></div>",unsafe_allow_html=True)
+
+st.markdown("""
+<div class="usage-notice" role="note" aria-label="Recommended display settings">
+  <div class="usage-notice-title">⚠️ IMPORTANT DISPLAY & USAGE NOTICE</div>
+  <div class="usage-notice-body">
+    <b>Please use RENALIS in Light Page Mode on all systems</b> for the intended visual appearance,
+    chart readability, colour separation, and dashboard presentation.
+    <div class="usage-notice-mobile">📱 Mobile users: please switch your browser or device to <b>Desktop Site / Desktop Mode</b> before using the application for the best experience.</div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 
 # =============================================================================
