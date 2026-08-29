@@ -4,5 +4,6 @@ numpy
 matplotlib
 plotly
 scikit-learn
+imbalanced-learn
 joblib
 xgboost
