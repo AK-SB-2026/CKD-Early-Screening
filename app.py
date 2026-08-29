@@ -111,6 +111,8 @@ button[kind="primary"]{border-radius:13px!important;background:linear-gradient(1
 .kidney-illustration{background:linear-gradient(145deg,#fff,#fff0f2);border:1px solid rgba(255,255,255,.22);border-radius:24px;padding:14px 16px 12px;box-shadow:0 18px 35px rgba(35,7,14,.18);max-width:500px;margin-left:auto}
 .kidney-illustration svg{display:block;width:100%;height:auto}.kidney-caption{display:flex;justify-content:space-between;gap:14px;align-items:baseline;padding:4px 5px 0;color:#651321;font-size:12px}.kidney-caption span{color:#765861;font-weight:500;text-align:right}
 .medical-callout{background:#fff;border:1px solid #e7c5ca;border-radius:18px;padding:14px 16px;box-shadow:0 10px 24px rgba(101,19,33,.08)}
+.usage-notice{background:linear-gradient(135deg,#fff3f4 0%,#ffe6e9 48%,#fff7f7 100%);border:3px solid #8f1427;border-radius:22px;padding:20px 24px;margin:0 0 22px;box-shadow:0 14px 30px rgba(101,19,33,.14)}
+.usage-notice-title{font-size:21px;font-weight:900;color:#651321;letter-spacing:.2px;margin-bottom:7px}.usage-notice-body{font-size:15px;line-height:1.65;color:#4e262e}.usage-notice-body b{color:#741728}.usage-notice-mobile{margin-top:9px;padding-top:9px;border-top:1px solid #e7c5ca;color:#651321;font-weight:800}
 </style>
     """,
     unsafe_allow_html=True
@@ -400,6 +402,17 @@ def render_severity_visual_stepper(severity_label):
 
 st.markdown("<div class='hero'><div style='display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,.75fr);gap:24px;align-items:center'><div><div class='hero-row'><span class='kidney-mark'>🫘</span><div><div class='kicker'>RENALIS • RENAL ANALYTICS & INTELLIGENCE SYSTEM</div><h1>RENALIS</h1></div></div><p>CKD early screening, clinical severity assessment, statistical analysis, insurance intelligence and model analytics in one integrated research dashboard.</p><div class='hero-kidney-note'>Kidney-focused analytics • screening • statistics • insurance</div></div><div class='medical-callout'><b>Clinical analytics workflow</b><br><span style='color:#765861'>Early Risk → Statistical Analysis → Diagnostic Plots → Insurance Portfolio → Clinical Severity</span></div></div></div>",unsafe_allow_html=True)
 
+st.markdown("""
+<div class="usage-notice" role="note" aria-label="Recommended display settings">
+  <div class="usage-notice-title">⚠️ IMPORTANT DISPLAY & USAGE NOTICE</div>
+  <div class="usage-notice-body">
+    <b>Please use RENALIS in Light Page Mode on all systems</b> for the intended visual appearance,
+    chart readability, colour separation, and dashboard presentation.
+    <div class="usage-notice-mobile">📱 Mobile users: please switch your browser or device to <b>Desktop Site / Desktop Mode</b> before using the application for the best experience.</div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
 
 # =============================================================================
 # SECTION 4 : APPLICATION SECTIONS
@@ -422,18 +435,26 @@ st.markdown("<div class='hero'><div style='display:grid;grid-template-columns:mi
 # assessments -- each with its own model, its own inputs, and its own
 # results. Neither section depends on the other having been run.
 # ---------------------------------------------------------------------------
-section_options = ["🏠 HOME", "1️⃣ EARLY SCREENING", "2️⃣ CLINICAL SCREENING", "3️⃣ INSURANCE INTELLIGENCE"]
+# ---------------------------------------------------------------------------
+# MAIN APPLICATION NAVIGATION
+# ---------------------------------------------------------------------------
+has_completed_early_screening = ("prediction" in st.session_state and "input_data" in st.session_state)
+section_options = ["🏠 HOME", "1️⃣ EARLY SCREENING"]
+if has_completed_early_screening:
+    section_options.append("2️⃣ CLINICAL SCREENING")
+section_options.append("3️⃣ INSURANCE INTELLIGENCE")
 
-if "selected_app_section" not in st.session_state:
-    st.session_state["selected_app_section"] = section_options[0]
-
+if "selected_app_section" not in st.session_state or st.session_state.get("selected_app_section") not in section_options:
+    st.session_state["selected_app_section"] = "🏠 HOME"
 if st.session_state.get("target_section") in section_options:
     st.session_state["selected_app_section"] = st.session_state.pop("target_section")
 
 with st.sidebar:
     st.markdown("<div style='font-size:28px;font-weight:800;font-family:Playfair Display,serif;'>RENALIS</div><div style='font-size:11px;opacity:.72;letter-spacing:1.4px;margin-bottom:16px;'>CKD RISK INTELLIGENCE</div>",unsafe_allow_html=True)
     selected_section = st.radio("NAVIGATE", section_options, key="selected_app_section")
-    st.markdown("<div class='sidebar-foot'><b>Integrated dashboard</b><br>Early screening • statistics • diagnostic plots • insurance analytics • clinical severity<br><br><span style='opacity:.75'>Research / demonstration interface. Not a diagnosis or insurance underwriting engine.</span></div>",unsafe_allow_html=True)
+    if not has_completed_early_screening:
+        st.markdown("<div style='margin-top:8px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.10);font-size:11px;line-height:1.45;'><b>🔒 Clinical Screening locked</b><br>Complete Early Screening first to unlock the severity assessment.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='sidebar-foot'><b>Four-pathway RENALIS dashboard</b><br>Home • Early Screening • Clinical Severity • Insurance Intelligence<br><br><span style='opacity:.75'>Research / demonstration interface. Not a diagnosis or insurance underwriting engine.</span></div>",unsafe_allow_html=True)
 
 is_home_section = selected_section == "🏠 HOME"
 main_early_screening = selected_section == "1️⃣ EARLY SCREENING"
@@ -477,329 +498,353 @@ elif is_insurance_section:
 # SECTION 5 : HOME TAB
 # =============================================================================
 
-with tab_home:
+if is_home_section:
+    with tab_home:
 
-    # =========================================================================
-    # PAGE HEADER
-    # =========================================================================
+        # =========================================================================
+        # PAGE HEADER
+        # =========================================================================
 
-    st.title(
-        "🩺 CKD Early Screening & Analytics"
-    )
+        st.title(
+            "🩺 CKD Early Screening & Analytics"
+        )
 
-    kidney_illustration()
-
-    st.markdown(
-        """
-        ### Machine Learning Based Chronic Kidney Disease Screening
-        """
-    )
-
-    st.write(
-        """
-        This application provides an integrated environment for
-        **CKD early screening, clinical reporting, model evaluation,
-        explainability and analytical visualisation**.
-        """
-    )
-
-
-    # =========================================================================
-    # APPLICATION STRUCTURE
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "🗺️ Application Structure"
-    )
-
-    struct_col1, struct_col2 = st.columns(2)
-
-    with struct_col1:
+        kidney_illustration()
 
         st.markdown(
             """
-            ### 1️⃣ Early Screening
-
-            CKD-**risk** prediction (Yes/No) using the final Linear SVM,
-            plus interpretation, model statistics, key plots, and the
-            insurance analysis.
+            ### Machine Learning Based Chronic Kidney Disease Screening
             """
         )
-
-    with struct_col2:
-
-        st.markdown(
-            """
-            ### 2️⃣ Clinical Screening
-
-            CKD-**severity** classification, developed separately as its
-            own independent assessment with its own intake form.
-            """
-        )
-
-
-    # =========================================================================
-    # PROJECT OBJECTIVE
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "🎯 Project Objective"
-    )
-
-    st.write(
-        """
-        The primary objective of this project is to develop a machine-learning
-        based early screening system for Chronic Kidney Disease (CKD) using
-        demographic, lifestyle, medical-history and vital-sign information.
-        """
-    )
-
-
-    # =========================================================================
-    # KEY APPLICATION MODULES
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "📌 Application Modules"
-    )
-
-
-    col1, col2, col3, col4 = st.columns(4)
-
-
-    with col1:
-
-        st.markdown(
-            """
-            ### 🩺
-
-            **CKD Screening**
-
-            Enter patient information and generate
-            an early CKD-risk prediction.
-            """
-        )
-
-
-    with col2:
-
-        st.markdown(
-            """
-            ### 📋
-
-            **Clinical Report**
-
-            View the patient's prediction,
-            screening indicators and interpretation.
-            """
-        )
-
-
-    with col3:
-
-        st.markdown(
-            """
-            ### 📊
-
-            **Model Performance**
-
-            Review the performance of the
-            final Linear SVM model.
-            """
-        )
-
-
-    with col4:
-
-        st.markdown(
-            """
-            ### 🔎
-
-            **Explainability**
-
-            Explore feature associations and
-            model interpretation.
-            """
-        )
-
-
-    # =========================================================================
-    # ANALYTICS MODULES
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "📈 Analytical Modules"
-    )
-
-
-    col1, col2, col3 = st.columns(3)
-
-
-    with col1:
-
-        st.markdown(
-            """
-            ### 📈 CKD Visualisations
-
-            Explore the CKD dataset through
-            the visualisations developed during
-            the analysis workflow.
-            """
-        )
-
-
-    with col2:
-
-        st.markdown(
-            """
-            ### 🏥 Insurance Analytics
-
-            Examine CKD risk and insurance-related
-            patterns through the project's
-            analytical visualisations.
-            """
-        )
-
-
-    with col3:
-
-        st.markdown(
-            """
-            ### 📚 About the Model
-
-            Review the modelling workflow,
-            preprocessing, feature engineering
-            and model information.
-            """
-        )
-
-
-    # =========================================================================
-    # FINAL MODEL
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "🤖 Final Deployed Model"
-    )
-
-
-    model_col1, model_col2 = st.columns(
-        [1, 2]
-    )
-
-
-    with model_col1:
-
-        st.metric(
-            "Final Model",
-            "Linear SVM"
-        )
-
-
-    with model_col2:
 
         st.write(
             """
-            The application uses the final Linear Support Vector Machine
-            developed in the CKD screening workflow for the deployed
-            prediction component.
+            This application provides an integrated environment for
+            **CKD early screening, clinical reporting, model evaluation,
+            explainability and analytical visualisation**.
             """
         )
 
 
-    # =========================================================================
-    # WORKFLOW
-    # =========================================================================
+        # =========================================================================
+        # APPLICATION STRUCTURE
+        # =========================================================================
 
-    st.divider()
+        st.divider()
 
-    st.subheader(
-        "🔄 Application Workflow"
-    )
+        st.subheader(
+            "🗺️ Application Structure"
+        )
+
+        struct_col1, struct_col2 = st.columns(2)
+
+        with struct_col1:
+
+            st.markdown(
+                """
+                ### 1️⃣ Early Screening
+
+                CKD-**risk** prediction (Yes/No) using the final Linear SVM,
+                plus interpretation, model statistics, key plots, and the
+                insurance analysis.
+                """
+            )
+
+        with struct_col2:
+
+            st.markdown(
+                """
+                ### 2️⃣ Clinical Screening
+
+                CKD-**severity** classification, developed separately as its
+                own independent assessment with its own intake form.
+                """
+            )
 
 
-    workflow_col1, \
-    workflow_col2, \
-    workflow_col3, \
-    workflow_col4 = st.columns(4)
+        # =========================================================================
+        # PROJECT OBJECTIVE
+        # =========================================================================
+
+        st.divider()
+
+        st.subheader(
+            "🎯 Project Objective"
+        )
+
+        st.write(
+            """
+            The primary objective of this project is to develop a machine-learning
+            based early screening system for Chronic Kidney Disease (CKD) using
+            demographic, lifestyle, medical-history and vital-sign information.
+            """
+        )
 
 
-    with workflow_col1:
+        # =========================================================================
+        # KEY APPLICATION MODULES
+        # =========================================================================
 
+        st.divider()
+
+        st.subheader(
+            "📌 Application Modules"
+        )
+
+
+        col1, col2, col3, col4 = st.columns(4)
+
+
+        with col1:
+
+            st.markdown(
+                """
+                ### 🩺
+
+                **CKD Screening**
+
+                Enter patient information and generate
+                an early CKD-risk prediction.
+                """
+            )
+
+
+        with col2:
+
+            st.markdown(
+                """
+                ### 📋
+
+                **Clinical Report**
+
+                View the patient's prediction,
+                screening indicators and interpretation.
+                """
+            )
+
+
+        with col3:
+
+            st.markdown(
+                """
+                ### 📊
+
+                **Model Performance**
+
+                Review the performance of the
+                final Linear SVM model.
+                """
+            )
+
+
+        with col4:
+
+            st.markdown(
+                """
+                ### 🔎
+
+                **Explainability**
+
+                Explore feature associations and
+                model interpretation.
+                """
+            )
+
+
+        # =========================================================================
+        # ANALYTICS MODULES
+        # =========================================================================
+
+        st.divider()
+
+        st.subheader(
+            "📈 Analytical Modules"
+        )
+
+
+        col1, col2, col3 = st.columns(3)
+
+
+        with col1:
+
+            st.markdown(
+                """
+                ### 📈 CKD Visualisations
+
+                Explore the CKD dataset through
+                the visualisations developed during
+                the analysis workflow.
+                """
+            )
+
+
+        with col2:
+
+            st.markdown(
+                """
+                ### 🏥 Insurance Analytics
+
+                Examine CKD risk and insurance-related
+                patterns through the project's
+                analytical visualisations.
+                """
+            )
+
+
+        with col3:
+
+            st.markdown(
+                """
+                ### 📚 About the Model
+
+                Review the modelling workflow,
+                preprocessing, feature engineering
+                and model information.
+                """
+            )
+
+
+        # =========================================================================
+        # FINAL MODEL
+        # =========================================================================
+
+        st.divider()
+
+        st.subheader(
+            "🤖 Final Deployed Model"
+        )
+
+
+        model_col1, model_col2 = st.columns(
+            [1, 2]
+        )
+
+
+        with model_col1:
+
+            st.metric(
+                "Final Model",
+                "Linear SVM"
+            )
+
+
+        with model_col2:
+
+            st.write(
+                """
+                The application uses the final Linear Support Vector Machine
+                developed in the CKD screening workflow for the deployed
+                prediction component.
+                """
+            )
+
+
+        # =========================================================================
+        # WORKFLOW
+        # =========================================================================
+
+        st.divider()
+
+        st.subheader(
+            "🔄 Application Workflow"
+        )
+
+
+        workflow_col1, \
+        workflow_col2, \
+        workflow_col3, \
+        workflow_col4 = st.columns(4)
+
+
+        with workflow_col1:
+
+            st.markdown(
+                """
+                **01**
+
+                🩺
+
+                **Patient Input**
+                """
+            )
+
+
+        with workflow_col2:
+
+            st.markdown(
+                """
+                **02**
+
+                ⚙️
+
+                **Feature Processing**
+                """
+            )
+
+
+        with workflow_col3:
+
+            st.markdown(
+                """
+                **03**
+
+                🤖
+
+                **SVM Prediction**
+                """
+            )
+
+
+        with workflow_col4:
+
+            st.markdown(
+                """
+                **04**
+
+                📋
+
+                **Clinical Report**
+                """
+            )
+
+
+        # =========================================================================
+        # DISCLAIMER
+        # =========================================================================
+
+        st.divider()
+
+        st.subheader("📝 Before You Begin")
         st.markdown(
-            """
-            **01**
-
-            🩺
-
-            **Patient Input**
-            """
+            "Home is information-only. No patient information is entered here. "
+            "Patient inputs are collected separately inside the **Early Screening** and **Clinical Screening** pathways. "
+            "Clinical Screening is unlocked only after Early Screening is completed, but it has its own independent 75-feature intake."
         )
 
+        st.divider()
+        st.subheader("👥 Creators")
+        creator_col1, creator_col2 = st.columns(2)
+        with creator_col1:
+            st.markdown(
+                "<a href='https://in.linkedin.com/in/smritilekha-bhattacharjee-1a6814364?utm_source=chatgpt.com' target='_blank'><b>Smritilekha Bhattacharjee</b> ↗ LinkedIn</a>",
+                unsafe_allow_html=True,
+            )
+        with creator_col2:
+            st.markdown(
+                "<a href='https://www.linkedin.com/in/akash-sinha-11ii200iii/' target='_blank'><b>Akash Sinha</b> ↗ LinkedIn</a>",
+                unsafe_allow_html=True,
+            )
 
-    with workflow_col2:
+        st.divider()
 
-        st.markdown(
+        st.caption(
             """
-            **02**
-
-            ⚙️
-
-            **Feature Processing**
-            """
-        )
-
-
-    with workflow_col3:
-
-        st.markdown(
-            """
-            **03**
-
-            🤖
-
-            **SVM Prediction**
-            """
-        )
-
-
-    with workflow_col4:
-
-        st.markdown(
-            """
-            **04**
-
-            📋
-
-            **Clinical Report**
+            **Important:** This application is intended for early screening
+            and analytical purposes. A machine-learning prediction should not
+            be considered a definitive medical diagnosis and does not replace
+            professional clinical evaluation.
             """
         )
-
-
-    # =========================================================================
-    # DISCLAIMER
-    # =========================================================================
-
-    st.divider()
-
-    st.caption(
-        """
-        **Important:** This application is intended for early screening
-        and analytical purposes. A machine-learning prediction should not
-        be considered a definitive medical diagnosis and does not replace
-        professional clinical evaluation.
-        """
-    )
 
 
 # =============================================================================
@@ -1084,8 +1129,30 @@ def load_shared_evaluation():
     candidates = _candidate_files([
         "Training_CKD_dataset.csv",
         "Testing_CKD_dataset.csv",
-        "CKD_Risk_Progression_Dataset_2026.csv"
+        "CKD_Risk_Progression_Dataset_2026.csv",
+        "CKD_Risk_Progression_Dataset.csv",
+        "CKD_early_screening_dataset.csv",
+        "CKD_Early_Screening_Dataset.csv",
+        "CKD_dataset.csv",
+        "ckd_dataset.csv",
+        "CKD_Risk_Dataset.csv",
+        "CKD_data.csv",
+        "CKD.csv"
     ])
+
+    # Streamlit deployments sometimes use a different dataset filename.
+    # Discover additional CSVs already shipped with the repository and let
+    # the schema check below decide whether they are compatible.
+    base = Path(__file__).resolve().parent
+    discovered = []
+    for root in [Path.cwd(), base, base / "data", base.parent]:
+        try:
+            for p in root.rglob("*.csv"):
+                if p.is_file() and p not in candidates and p not in discovered:
+                    discovered.append(p)
+        except Exception:
+            pass
+    candidates.extend(discovered)
     for path in candidates:
         try:
             data = pd.read_csv(path)
@@ -1154,1714 +1221,521 @@ else:
 # SECTION 3 : CKD SCREENING TAB
 # =============================================================================
 
-with tab_prediction:
-
-    # =========================================================================
-    # PAGE HEADER
-    # =========================================================================
-
-    st.title(
-        "🩺 CKD Prediction"
-    )
-
-    st.write(
-        """
-        Enter the patient's demographic, lifestyle, medical and
-        physiological information below to perform an early CKD-risk
-        screening using the final Linear SVM model.
-        """
-    )
-
-
-    st.info(
-        """
-        The screening model uses non-kidney clinical and lifestyle
-        information for early risk assessment. The result is not a
-        definitive medical diagnosis.
-        """
-    )
-
-
-    # =========================================================================
-    # SECTION 3.1 : DEMOGRAPHICS
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "👤 Demographic Information"
-    )
-
-    st.info(
-        "💡 **How to enter numbers:** use the units shown in brackets. "
-        "For example, blood pressure is entered as mmHg, height as cm, weight as kg, "
-        "and water intake as litres per day. You do not need to enter the model's internal 0/1 codes; use the Yes/No choices provided."
-    )
-
-
-    col1, col2, col3 = st.columns(3)
-
-
-    with col1:
-
-        Age = st.number_input(
-            "Age (years)",
-            min_value=1,
-            max_value=120,
-            value=40,
-            step=1
-        )
-
-
-    with col2:
-
-        Sex = st.selectbox(
-            "Sex",
-            [
-                "Female",
-                "Male"
-            ]
-        )
-
-
-    with col3:
-
-        Ethnicity = st.selectbox(
-            "Ethnicity",
-            [
-                "Asian",
-                "Black",
-                "Hispanic",
-                "White",
-                "Other"
-            ]
-        )
-
-
-    col4, col5, col6 = st.columns(3)
-
-
-    with col4:
-
-        Country = st.selectbox(
-            "Country",
-            [
-                "Australia",
-                "Canada",
-                "India",
-                "UK",
-                "USA",
-                "Other"
-            ]
-        )
-
-
-    with col5:
-
-        Residence_Type = st.selectbox(
-            "Residence Type",
-            [
-                "Urban",
-                "Rural"
-            ]
-        )
-
-
-    with col6:
-
-        Education_Level = st.selectbox(
-            "Education Level",
-            [
-                "High School",
-                "Some College",
-                "Bachelor's",
-                "Graduate"
-            ]
-        )
-
-
-    col7, col8 = st.columns(2)
-
-
-    with col7:
-
-        Socioeconomic_Status = st.selectbox(
-            "Socioeconomic Status",
-            [
-                "Low",
-                "Middle",
-                "High"
-            ]
-        )
-
-
-    with col8:
-
-        Employment_Status = st.selectbox(
-            "Employment Status",
-            [
-                "Employed",
-                "Unemployed/Retired"
-            ]
-        )
-
-
-    # =========================================================================
-    # SECTION 3.2 : BODY COMPOSITION
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "⚖️ Body Composition"
-    )
-
-
-    col1, col2, col3 = st.columns(3)
-
-
-    with col1:
-
-        Height_cm = st.number_input(
-            "Height (cm)",
-            help="Enter height in centimetres. Example: 170 cm.",
-            min_value=50.0,
-            max_value=250.0,
-            value=170.0,
-            step=0.1
-        )
-
-
-    with col2:
-
-        Weight_kg = st.number_input(
-            "Weight (kg)",
-            help="Enter body weight in kilograms. Example: 70 kg.",
-            min_value=10.0,
-            max_value=300.0,
-            value=70.0,
-            step=0.1
-        )
-
-
-    with col3:
-
-        BMI = st.number_input(
-            "BMI (kg/m²)",
-            help="Body Mass Index. If you know your BMI, enter it here.",
-            min_value=10.0,
-            max_value=80.0,
-            value=24.0,
-            step=0.1
-        )
-
-
-    col4, col5, col6 = st.columns(3)
-
-
-    with col4:
-
-        Waist_Circumference_cm = st.number_input(
-            "Waist Circumference (cm)",
-            help="Measure around the waist in centimetres.",
-            min_value=30.0,
-            max_value=200.0,
-            value=85.0,
-            step=0.1
-        )
-
-
-    with col5:
-
-        Body_Fat_Percentage = st.number_input(
-            "Body Fat (%)",
-            help="Estimated body-fat percentage, if known.",
-            min_value=1.0,
-            max_value=70.0,
-            value=25.0,
-            step=0.1
-        )
-
-
-    with col6:
-
-        Obesity = st.selectbox(
-            "Obesity",
-            [
-                0,
-                1
-            ],
-            format_func=lambda x: (
-                "No" if x == 0 else "Yes"
-            )
-        )
-
-
-    # =========================================================================
-    # SECTION 3.3 : LIFESTYLE
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "🏃 Lifestyle Information"
-    )
-
-
-    col1, col2, col3 = st.columns(3)
-
-
-    with col1:
-
-        Smoking_Status = st.selectbox(
-            "Smoking Status",
-            [
-                "Never",
-                "Former",
-                "Current"
-            ]
-        )
-
-
-    with col2:
-
-        Alcohol_Consumption = st.selectbox(
-            "Alcohol Consumption",
-            [
-                "Low",
-                "Moderate",
-                "High"
-            ]
-        )
-
-
-    with col3:
-
-        Physical_Activity_Level = st.selectbox(
-            "Physical Activity Level",
-            [
-                "Low",
-                "Moderate",
-                "Active"
-            ]
-        )
-
-
-    col4, col5, col6 = st.columns(3)
-
-
-    with col4:
-
-        Exercise_Hours_Per_Week = st.number_input(
-            "Exercise Hours / Week",
-            help="Approximate hours of exercise in a typical week.",
-            min_value=0.0,
-            max_value=50.0,
-            value=3.0,
-            step=0.5
-        )
-
-
-    with col5:
-
-        Daily_Steps = st.number_input(
-            "Daily Steps",
-            help="Approximate number of steps taken on a typical day.",
-            min_value=0,
-            max_value=100000,
-            value=7000,
-            step=500
-        )
-
-
-    with col6:
-
-        Water_Intake_L = st.number_input(
-            "Water Intake (litres/day)",
-            help="Approximate total water/fluid intake per day.",
-            min_value=0.0,
-            max_value=10.0,
-            value=2.0,
-            step=0.1
-        )
-
-
-    col7, col8, col9 = st.columns(3)
-
-
-    with col7:
-
-        Sodium_Intake_mg = st.number_input(
-            "Sodium Intake (mg/day)",
-            help="Approximate daily sodium intake, if known.",
-            min_value=0,
-            max_value=15000,
-            value=2300,
-            step=100
-        )
-
-
-    with col8:
-
-        Fast_Food_Frequency_Per_Week = st.number_input(
-            "Fast Food Meals / Week",
-            help="Approximate number of fast-food meals per week.",
-            min_value=0,
-            max_value=30,
-            value=2,
-            step=1
-        )
-
-
-    with col9:
-
-        Sleep_Duration_Hours = st.number_input(
-            "Sleep Duration (hours/night)",
-            help="Average hours of sleep per night.",
-            min_value=0.0,
-            max_value=24.0,
-            value=7.0,
-            step=0.5
-        )
-
-
-    # =========================================================================
-    # SECTION 3.4 : STRESS
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "🧠 Stress & Sleep"
-    )
-
-
-    Stress_Level = st.selectbox(
-        "Stress Level",
-        [
-            "Low",
-            "Moderate",
-            "High"
-        ]
-    )
-
-
-    # =========================================================================
-    # SECTION 3.5 : MEDICAL HISTORY
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "🏥 Medical History"
-    )
-
-
-    col1, col2, col3 = st.columns(3)
-
-
-    with col1:
-
-        Diabetes = st.selectbox(
-            "Diabetes",
-            [0, 1],
-            format_func=lambda x: (
-                "No" if x == 0 else "Yes"
-            )
-        )
-
-
-    with col2:
-
-        Hypertension = st.selectbox(
-            "Hypertension",
-            [0, 1],
-            format_func=lambda x: (
-                "No" if x == 0 else "Yes"
-            )
-        )
-
-
-    with col3:
-
-        Cardiovascular_Disease = st.selectbox(
-            "Cardiovascular Disease",
-            [0, 1],
-            format_func=lambda x: (
-                "No" if x == 0 else "Yes"
-            )
-        )
-
-
-    col4, col5, col6 = st.columns(3)
-
-
-    with col4:
-
-        Heart_Failure = st.selectbox(
-            "Heart Failure",
-            [0, 1],
-            format_func=lambda x: (
-                "No" if x == 0 else "Yes"
-            )
-        )
-
-
-    with col5:
-
-        Hyperlipidemia = st.selectbox(
-            "Hyperlipidemia",
-            [0, 1],
-            format_func=lambda x: (
-                "No" if x == 0 else "Yes"
-            )
-        )
-
-
-    with col6:
-
-        Kidney_Stones = st.selectbox(
-            "Kidney Stones",
-            [0, 1],
-            format_func=lambda x: (
-                "No" if x == 0 else "Yes"
-            )
-        )
-
-
-    col7, col8, col9 = st.columns(3)
-
-
-    with col7:
-
-        Recurrent_UTI = st.selectbox(
-            "Recurrent UTI",
-            [0, 1],
-            format_func=lambda x: (
-                "No" if x == 0 else "Yes"
-            )
-        )
-
-
-    with col8:
-
-        Autoimmune_Disease = st.selectbox(
-            "Autoimmune Disease",
-            [0, 1],
-            format_func=lambda x: (
-                "No" if x == 0 else "Yes"
-            )
-        )
-
-
-    with col9:
-
-        Family_History_CKD = st.selectbox(
-            "Family History of CKD",
-            [0, 1],
-            format_func=lambda x: (
-                "No" if x == 0 else "Yes"
-            )
-        )
-
-
-    # =========================================================================
-    # SECTION 3.6 : VITAL SIGNS
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "❤️ Vital Signs"
-    )
-
-
-    col1, col2, col3 = st.columns(3)
-
-
-    with col1:
-
-        Heart_Rate = st.number_input(
-            "Heart Rate (beats/min)",
-            min_value=30,
-            max_value=220,
-            value=72,
-            step=1
-        )
-
-
-    with col2:
-
-        Respiratory_Rate = st.number_input(
-            "Respiratory Rate (/min)",
-            min_value=5,
-            max_value=60,
-            value=16,
-            step=1
-        )
-
-
-    with col3:
-
-        Oxygen_Saturation = st.number_input(
-            "Oxygen Saturation (%)",
-            help="Blood oxygen saturation (SpO₂), usually shown on a pulse oximeter.",
-            min_value=50.0,
-            max_value=100.0,
-            value=98.0,
-            step=0.1
-        )
-
-
-    col4, col5 = st.columns(2)
-
-
-    with col4:
-
-        Systolic_BP = st.number_input(
-            "Systolic Blood Pressure (mmHg)",
-            help="The top number of a blood-pressure reading. Example: 120/80 → enter 120.",
-            min_value=60,
-            max_value=250,
-            value=120,
-            step=1
-        )
-
-
-    with col5:
-
-        Diastolic_BP = st.number_input(
-            "Diastolic Blood Pressure (mmHg)",
-            help="The bottom number of a blood-pressure reading. Example: 120/80 → enter 80.",
-            min_value=30,
-            max_value=150,
-            value=80,
-            step=1
-        )
-
-
-    # A simple plain-language interpretation of the numerical vital signs.
-    # This is display-only and does not alter the values sent to the model.
-    bp_category_display = "Typical range"
-    if Systolic_BP >= 140 or Diastolic_BP >= 90:
-        bp_category_display = "Higher reading"
-    elif Systolic_BP >= 130 or Diastolic_BP >= 80:
-        bp_category_display = "Above typical range"
-    elif Systolic_BP < 90 or Diastolic_BP < 60:
-        bp_category_display = "Lower reading"
-
-    st.markdown(
-        f"**🩺 Blood pressure summary:** `{Systolic_BP:.0f}/{Diastolic_BP:.0f} mmHg` "
-        f"&nbsp; — &nbsp; **{bp_category_display}**",
-        unsafe_allow_html=True
-    )
-    st.caption("This quick label is only a user-friendly guide; it is not a diagnosis.")
-
-
-    # =========================================================================
-    # SECTION 3.7 : MEDICATION / HEALTHCARE
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "💊 Healthcare & Medication"
-    )
-
-
-    col1, col2, col3 = st.columns(3)
-
-
-    with col1:
-
-        NSAID_Usage = st.selectbox(
-            "NSAID Usage",
-            [0, 1],
-            format_func=lambda x: (
-                "No" if x == 0 else "Yes"
-            )
-        )
-
-
-    with col2:
-
-        Annual_Checkups = st.number_input(
-            "Health Checkups / Year",
-            help="Approximate number of routine health checkups in a year.",
-            min_value=0,
-            max_value=30,
-            value=1,
-            step=1
-        )
-
-
-    with col3:
-
-        Health_Insurance = st.selectbox(
-            "Health Insurance",
-            [0, 1],
-            format_func=lambda x: (
-                "No" if x == 0 else "Yes"
-            )
-        )
-
-
-    # =========================================================================
-    # SECTION 3.8 : SOCIOECONOMIC INFORMATION
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "💰 Socioeconomic Information"
-    )
-
-
-    col1, col2 = st.columns(2)
-
-
-    with col1:
-
-        Annual_Household_Income_USD = st.number_input(
-            "Annual Household Income (USD)",
-            help="Enter annual household income in USD to match the model's training data.",
-            min_value=0,
-            max_value=1000000,
-            value=60000,
-            step=1000
-        )
-
-
-    with col2:
-
-        st.write(
-            " "
-        )
-
-        st.caption(
-            "Income is entered in USD to match the training dataset."
-        )
-
-
-    # =========================================================================
-    # SECTION 3.9 : DERIVED MODEL FEATURES
-    # =========================================================================
-
-    # -------------------------------------------------------------------------
-    # Pulse Pressure
-    # -------------------------------------------------------------------------
-
-    Pulse_Pressure = (
-        Systolic_BP -
-        Diastolic_BP
-    )
-
-
-    # -------------------------------------------------------------------------
-    # Waist-to-Height Ratio
-    # -------------------------------------------------------------------------
-
-    if Height_cm > 0:
-
-        Waist_to_Height = (
-            Waist_Circumference_cm /
-            Height_cm
-        )
-
-    else:
-
-        Waist_to_Height = 0.0
-
-
-    # -------------------------------------------------------------------------
-    # Lifestyle Risk
-    # -------------------------------------------------------------------------
-
-    Lifestyle_Risk = (
-        int(
-            Smoking_Status == "Current"
-        )
-        +
-        int(
-            Alcohol_Consumption == "High"
-        )
-        +
-        int(
-            Physical_Activity_Level == "Low"
-        )
-    )
-
-
-    # -------------------------------------------------------------------------
-    # Metabolic Risk
-    # -------------------------------------------------------------------------
-
-    Metabolic_Risk = (
-        Diabetes
-        +
-        Hypertension
-        +
-        Obesity
-    )
-
-
-    # -------------------------------------------------------------------------
-    # Cardiovascular Risk
-    # -------------------------------------------------------------------------
-
-    CV_Risk = (
-        Cardiovascular_Disease
-        +
-        Heart_Failure
-        +
-        Hyperlipidemia
-    )
-
-
-    # -------------------------------------------------------------------------
-    # Poor Sleep
-    # -------------------------------------------------------------------------
-
-    Poor_Sleep = int(
-        Sleep_Duration_Hours < 6
-        or
-        Sleep_Duration_Hours > 9
-    )
-
-
-    # =========================================================================
-    # SECTION 3.10 : BLOOD PRESSURE CATEGORY
-    # =========================================================================
-
-    if Systolic_BP < 120 and Diastolic_BP < 80:
-
-        Blood_Pressure_Category = "Normal"
-
-    elif (
-        120 <= Systolic_BP < 130
-        and
-        Diastolic_BP < 80
-    ):
-
-        Blood_Pressure_Category = "Elevated"
-
-    elif (
-        130 <= Systolic_BP < 140
-        or
-        80 <= Diastolic_BP < 90
-    ):
-
-        Blood_Pressure_Category = (
-            "Hypertension Stage 1"
-        )
-
-    else:
-
-        Blood_Pressure_Category = (
-            "Hypertension Stage 2"
-        )
-
-
-    # =========================================================================
-    # SECTION 3.11 : SHOW DERIVED VARIABLES
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "⚙️ Derived Screening Indicators"
-    )
-
-
-    derived_col1, \
-    derived_col2, \
-    derived_col3, \
-    derived_col4, \
-    derived_col5 = st.columns(5)
-
-
-    with derived_col1:
-
-        st.metric(
-            "Pulse Pressure",
-            f"{Pulse_Pressure:.1f}"
-        )
-
-
-    with derived_col2:
-
-        st.metric(
-            "Waist / Height",
-            f"{Waist_to_Height:.3f}"
-        )
-
-
-    with derived_col3:
-
-        st.metric(
-            "Lifestyle Risk",
-            f"{Lifestyle_Risk}"
-        )
-
-
-    with derived_col4:
-
-        st.metric(
-            "Metabolic Risk",
-            f"{Metabolic_Risk}"
-        )
-
-
-    with derived_col5:
-
-        st.metric(
-            "CV Risk",
-            f"{CV_Risk}"
-        )
-
-
-    st.caption(
-        f"Blood Pressure Category: **{Blood_Pressure_Category}** "
-        f"| Poor Sleep Indicator: **{Poor_Sleep}**"
-    )
-
-
-    # =========================================================================
-    # SECTION 3.12 : CREATE EXACT MODEL INPUT
-    # =========================================================================
-
-    input_data = pd.DataFrame(
-        {
-            "Age": [Age],
-            "Sex": [Sex],
-            "Ethnicity": [Ethnicity],
-            "Country": [Country],
-            "Residence_Type": [Residence_Type],
-            "Education_Level": [Education_Level],
-            "Socioeconomic_Status": [Socioeconomic_Status],
-
-            "Height_cm": [Height_cm],
-            "Weight_kg": [Weight_kg],
-            "BMI": [BMI],
-            "Waist_Circumference_cm": [
-                Waist_Circumference_cm
-            ],
-            "Body_Fat_Percentage": [
-                Body_Fat_Percentage
-            ],
-
-            "Smoking_Status": [Smoking_Status],
-            "Alcohol_Consumption": [
-                Alcohol_Consumption
-            ],
-            "Physical_Activity_Level": [
-                Physical_Activity_Level
-            ],
-
-            "Exercise_Hours_Per_Week": [
-                Exercise_Hours_Per_Week
-            ],
-            "Daily_Steps": [Daily_Steps],
-            "Water_Intake_L": [Water_Intake_L],
-            "Sodium_Intake_mg": [
-                Sodium_Intake_mg
-            ],
-            "Fast_Food_Frequency_Per_Week": [
-                Fast_Food_Frequency_Per_Week
-            ],
-            "Sleep_Duration_Hours": [
-                Sleep_Duration_Hours
-            ],
-
-            "Stress_Level": [Stress_Level],
-
-            "Diabetes": [Diabetes],
-            "Hypertension": [Hypertension],
-            "Cardiovascular_Disease": [
-                Cardiovascular_Disease
-            ],
-            "Heart_Failure": [Heart_Failure],
-            "Hyperlipidemia": [Hyperlipidemia],
-            "Kidney_Stones": [Kidney_Stones],
-            "Recurrent_UTI": [Recurrent_UTI],
-            "Autoimmune_Disease": [
-                Autoimmune_Disease
-            ],
-            "Family_History_CKD": [
-                Family_History_CKD
-            ],
-            "Obesity": [Obesity],
-
-            "Heart_Rate": [Heart_Rate],
-            "Respiratory_Rate": [
-                Respiratory_Rate
-            ],
-            "Oxygen_Saturation": [
-                Oxygen_Saturation
-            ],
-
-            "Systolic_BP": [Systolic_BP],
-            "Diastolic_BP": [Diastolic_BP],
-
-            "Blood_Pressure_Category": [
-                Blood_Pressure_Category
-            ],
-
-            "NSAID_Usage": [NSAID_Usage],
-            "Annual_Checkups": [
-                Annual_Checkups
-            ],
-            "Health_Insurance": [
-                Health_Insurance
-            ],
-            "Annual_Household_Income_USD": [
-                Annual_Household_Income_USD
-            ],
-            "Employment_Status": [
-                Employment_Status
-            ],
-
-            "Pulse_Pressure": [
-                Pulse_Pressure
-            ],
-            "Waist_to_Height": [
-                Waist_to_Height
-            ],
-            "Lifestyle_Risk": [
-                Lifestyle_Risk
-            ],
-            "Metabolic_Risk": [
-                Metabolic_Risk
-            ],
-            "CV_Risk": [
-                CV_Risk
-            ],
-            "Poor_Sleep": [
-                Poor_Sleep
-            ]
-        }
-    )
-
-
-    # =========================================================================
-    # SECTION 3.13 : VERIFY MODEL FEATURE ORDER
-    # =========================================================================
-
-    expected_features = list(
-        final_svm_pipeline.feature_names_in_
-    )
-
-
-    missing_features = [
-        feature
-        for feature in expected_features
-        if feature not in input_data.columns
-    ]
-
-
-    extra_features = [
-        feature
-        for feature in input_data.columns
-        if feature not in expected_features
-    ]
-
-
-    if missing_features:
-
-        st.error(
-            "Model input is missing required features:"
+if main_early_screening:
+    with tab_prediction:
+
+        # =========================================================================
+        # PAGE HEADER
+        # =========================================================================
+
+        st.title(
+            "🩺 CKD Prediction"
         )
 
         st.write(
-            missing_features
+            """
+            Enter the patient's demographic, lifestyle, medical and
+            physiological information below to perform an early CKD-risk
+            screening using the final Linear SVM model.
+            """
         )
 
-        st.stop()
-
-
-    if extra_features:
-
-        input_data = input_data.drop(
-            columns=extra_features
-        )
-
-
-    input_data = input_data[
-        expected_features
-    ]
-
-
-    # =========================================================================
-    # SECTION 3.14 : RUN SCREENING
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "🚀 Run CKD Screening"
-    )
-
-
-    run_screening = st.button(
-        "🔍 Predict CKD Risk",
-        type="primary",
-        use_container_width=True
-    )
-
-
-    # =========================================================================
-    # SECTION 3.15 : MODEL PREDICTION
-    # =========================================================================
-
-    if run_screening:
-
-        if not MODEL_LOADED:
-
-            st.error(
-                "The CKD SVM model could not be loaded."
-            )
-
-        else:
-
-            try:
-
-                # -------------------------------------------------------------
-                # Prediction
-                # -------------------------------------------------------------
-
-                prediction = (
-                    final_svm_pipeline.predict(
-                        input_data
-                    )[0]
-                )
-
-
-                # -------------------------------------------------------------
-                # Decision score
-                # -------------------------------------------------------------
-
-                decision_score = (
-                    final_svm_pipeline
-                    .decision_function(
-                        input_data
-                    )[0]
-                )
-
-
-                # -------------------------------------------------------------
-                # Save result in session state
-                # -------------------------------------------------------------
-
-                st.session_state[
-                    "prediction"
-                ] = prediction
-
-                st.session_state[
-                    "decision_score"
-                ] = decision_score
-
-                st.session_state[
-                    "input_data"
-                ] = input_data.copy()
-
-                # ---- STAY ON EARLY SCREENING ----
-                # Do NOT auto-redirect. Let the user see the full
-                # prediction results dashboard before navigating.
-
-                st.rerun()
-
-            except Exception as prediction_error:
-
-                st.error(
-                    "Prediction failed."
-                )
-
-                st.exception(
-                    prediction_error
-                )
-
-    # =====================================================================
-    # COMPREHENSIVE PREDICTION RESULTS DASHBOARD
-    # =====================================================================
-    # After a successful prediction, this rich dashboard is displayed
-    # directly on the prediction tab so users see ALL analysis at once.
-    # =====================================================================
-    if "prediction" in st.session_state and "input_data" in st.session_state:
-        input_data_persistent = st.session_state["input_data"]
-        prediction_persistent = int(st.session_state["prediction"])
-        decision_score_persistent = float(st.session_state.get("decision_score", 0.0))
-
-        st.divider()
-
-        # --- SUCCESS BANNER ---
-        st.success(
-            "✅ **CKD Early Screening completed successfully!** "
-            "Review your comprehensive results below."
-        )
-
-        # =================================================================
-        # SECTION A : RISK CLASSIFICATION & GAUGE
-        # =================================================================
-        st.header("🎯 Risk Classification & Decision Signal")
-        st.caption("Visual summary of the SVM screening model's assessment.")
-
-        render_visual_prediction_summary(prediction_persistent, decision_score_persistent, key_suffix="interpretation")
-
-        st.divider()
-
-        # =================================================================
-        # SECTION B : HEALTH FACTOR BADGES
-        # =================================================================
-        render_patient_health_badges(input_data_persistent)
-
-        st.divider()
-
-        # =================================================================
-        # SECTION C : MODEL PERFORMANCE KPIs
-        # =================================================================
-        st.header("📊 Model Performance Metrics")
-        st.caption(f"Source: {evaluation_source}")
-
-        kpi_col1, kpi_col2, kpi_col3, kpi_col4, kpi_col5 = st.columns(5)
-        with kpi_col1:
-            st.metric("Accuracy", f"{svm_accuracy:.3f}")
-        with kpi_col2:
-            st.metric("Precision", f"{svm_precision:.3f}")
-        with kpi_col3:
-            st.metric("Recall", f"{svm_recall:.3f}")
-        with kpi_col4:
-            st.metric("F1 Score", f"{svm_f1:.3f}")
-        with kpi_col5:
-            st.metric("ROC AUC", f"{svm_roc_auc:.3f}")
-
-        with st.expander("📖 What do these metrics mean?", expanded=False):
-            st.markdown("""
-            | Metric | Meaning |
-            |--------|---------|
-            | **Accuracy** | Overall percentage of correct predictions |
-            | **Precision** | Of those flagged as high-risk, how many truly are |
-            | **Recall** | Of all actual high-risk patients, how many were caught |
-            | **F1 Score** | Balanced harmonic mean of Precision and Recall |
-            | **ROC AUC** | Model's ability to distinguish between risk classes (1.0 = perfect) |
-
-            > **Clinical Note:** For screening, **Recall** is the most critical metric — we want to
-            > minimise missed high-risk patients (false negatives). The Linear SVM was selected
-            > specifically because it records the highest recall among deployment candidates.
-            """)
-
-        st.divider()
-
-        # =================================================================
-        # SECTION D : INTERACTIVE RISK PROFILE RADAR CHART
-        # =================================================================
-        st.header("📈 Interactive Risk Profile Visualisation")
-        st.caption("Radar chart showing the patient's risk scores across all derived clinical dimensions.")
-
-        try:
-            row = input_data_persistent.iloc[0]
-
-            # Gather risk dimensions
-            meta_risk = _safe_int(row.get("Metabolic_Risk"), 0)
-            cv_risk = _safe_int(row.get("CV_Risk"), 0)
-            ls_risk = _safe_int(row.get("Lifestyle_Risk"), 0)
-            poor_sleep = _safe_int(row.get("Poor_Sleep"), 0)
-            bmi_val = _safe_float(row.get("BMI"), 24.0)
-            sys_bp = _safe_float(row.get("Systolic_BP"), 120.0)
-
-            # Normalise to 0–1 scale for radar
-            bmi_norm = min(bmi_val / 45.0, 1.0)
-            bp_norm = min(sys_bp / 200.0, 1.0)
-            meta_norm = meta_risk / 3.0
-            cv_norm = cv_risk / 3.0
-            ls_norm = ls_risk / 3.0
-            sleep_norm = float(poor_sleep)
-
-            radar_categories = [
-                "Metabolic Risk", "CV Risk", "Lifestyle Risk",
-                "Sleep Quality", "BMI Index", "Blood Pressure"
-            ]
-            radar_values = [meta_norm, cv_norm, ls_norm, sleep_norm, bmi_norm, bp_norm]
-            # Close the radar
-            radar_values_closed = radar_values + [radar_values[0]]
-            radar_categories_closed = radar_categories + [radar_categories[0]]
-
-            radar_col1, radar_col2 = st.columns([1.5, 1])
-
-            with radar_col1:
-                fig_radar = go.Figure()
-                fig_radar.add_trace(go.Scatterpolar(
-                    r=radar_values_closed,
-                    theta=radar_categories_closed,
-                    fill="toself",
-                    fillcolor="rgba(231, 76, 60, 0.15)" if prediction_persistent == 1 else "rgba(39, 174, 96, 0.15)",
-                    line=dict(
-                        color="#e74c3c" if prediction_persistent == 1 else "#27ae60",
-                        width=2.5
-                    ),
-                    name="Patient Risk Profile",
-                    hovertemplate="<b>%{theta}</b><br>Score: %{r:.2f}<extra></extra>"
-                ))
-                fig_radar.update_layout(
-                    polar=dict(
-                        radialaxis=dict(visible=True, range=[0, 1], tickfont=dict(size=10)),
-                        angularaxis=dict(tickfont=dict(size=12))
-                    ),
-                    showlegend=False,
-                    height=420,
-                    margin=dict(l=60, r=60, t=40, b=40),
-                    paper_bgcolor="rgba(0,0,0,0)"
-                )
-                st.plotly_chart(fig_radar, use_container_width=True)
-
-            with radar_col2:
-                st.markdown("##### Risk Score Breakdown")
-                risk_items = [
-                    ("🔴" if meta_risk >= 2 else "🟡" if meta_risk == 1 else "🟢",
-                     "Metabolic Risk", f"{meta_risk}/3"),
-                    ("🔴" if cv_risk >= 2 else "🟡" if cv_risk == 1 else "🟢",
-                     "CV Risk", f"{cv_risk}/3"),
-                    ("🔴" if ls_risk >= 2 else "🟡" if ls_risk == 1 else "🟢",
-                     "Lifestyle Risk", f"{ls_risk}/3"),
-                    ("🟡" if poor_sleep == 1 else "🟢",
-                     "Sleep Quality", "Suboptimal" if poor_sleep == 1 else "Optimal"),
-                    ("🔴" if bmi_val >= 30 else "🟡" if bmi_val >= 25 else "🟢",
-                     "BMI", f"{bmi_val:.1f}"),
-                    ("🔴" if sys_bp >= 140 else "🟡" if sys_bp >= 120 else "🟢",
-                     "Systolic BP", f"{sys_bp:.0f} mmHg"),
-                ]
-                for icon, label, value in risk_items:
-                    st.markdown(f"{icon} **{label}:** {value}")
-
-        except Exception as radar_err:
-            st.warning(f"Unable to render risk profile radar chart: {radar_err}")
-
-        st.divider()
-
-        # =================================================================
-        # SECTION E : CLINICAL INTERPRETATION & RECOMMENDATIONS
-        # =================================================================
-        st.header("📋 Clinical Interpretation & Recommendations")
-
-        if prediction_persistent == 1:
-            st.markdown("""
-            <div class="risk-banner-high">
-                <h3 style="margin-top:0; color:#c0392b;">⚠️ Key Clinical Findings — Higher CKD Risk</h3>
-                <p style="font-size: 1.0em; line-height: 1.7;">
-                    The Linear SVM screening model has placed this patient's profile on the
-                    <b>higher-risk side</b> of the classification boundary. This means the
-                    combination of demographic, lifestyle, and clinical features indicates
-                    elevated risk for Chronic Kidney Disease.
-                </p>
-                <hr style="border-top: 1px solid #f5c6cb; margin: 12px 0;">
-                <h4 style="color:#c0392b;">Recommended Actions:</h4>
-                <ol style="font-size: 0.95em; line-height: 1.8;">
-                    <li>📋 <b>Clinical Tests:</b> Order <b>eGFR</b>, <b>Serum Creatinine</b>, and <b>Urine ACR</b></li>
-                    <li>🩺 <b>Medical Review:</b> Schedule consultation with a nephrologist or general practitioner</li>
-                    <li>💊 <b>Medication Review:</b> Assess current medication adherence and nephrotoxic drug exposure</li>
-                    <li>🏃 <b>Lifestyle Modifications:</b> Address modifiable risk factors (smoking, diet, physical activity)</li>
-                    <li>📊 <b>Follow-up:</b> Proceed to <b>Clinical Screening</b> for severity classification</li>
-                </ol>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <div class="risk-banner-low">
-                <h3 style="margin-top:0; color:#27ae60;">✅ Key Clinical Findings — Lower CKD Risk</h3>
-                <p style="font-size: 1.0em; line-height: 1.7;">
-                    The screening model has placed this patient's profile on the
-                    <b>lower-risk side</b> of the classification boundary. This is reassuring,
-                    but <b>does not rule out kidney disease</b>.
-                </p>
-                <hr style="border-top: 1px solid #c3e6cb; margin: 12px 0;">
-                <h4 style="color:#27ae60;">Recommended Actions:</h4>
-                <ol style="font-size: 0.95em; line-height: 1.8;">
-                    <li>✅ <b>Routine Monitoring:</b> Continue regular annual health check-ups</li>
-                    <li>🩺 <b>Discuss Symptoms:</b> Report any new symptoms to a healthcare professional</li>
-                    <li>🏃 <b>Healthy Lifestyle:</b> Maintain balanced diet, regular exercise, adequate hydration</li>
-                    <li>📊 <b>Optional:</b> Proceed to <b>Clinical Screening</b> for detailed severity assessment</li>
-                </ol>
-            </div>
-            """, unsafe_allow_html=True)
-
-        st.divider()
-
-        # =================================================================
-        # SECTION F : INSURANCE RISK SUMMARY
-        # =================================================================
-        st.header("💰 Insurance Risk Summary")
-
-        ins_col1, ins_col2 = st.columns(2)
-        insurance_val = _safe_int(input_data_persistent.iloc[0].get("Health_Insurance", 0), 0)
-        income_val = _safe_float(input_data_persistent.iloc[0].get("Annual_Household_Income_USD", 0), 0)
-
-        with ins_col1:
-            if insurance_val == 1:
-                st.markdown("""
-                <div class="metric-card">
-                    <h4>🛡️ Insurance Status: <span style="color:#27ae60;">Insured</span></h4>
-                    <p>This patient has health insurance coverage.</p>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown("""
-                <div class="metric-card" style="border-left-color: #e74c3c;">
-                    <h4>⚠️ Insurance Status: <span style="color:#e74c3c;">Uninsured</span></h4>
-                    <p>This patient does <b>not</b> have health insurance coverage.</p>
-                </div>
-                """, unsafe_allow_html=True)
-
-        with ins_col2:
-            risk_group = "Higher Risk" if prediction_persistent == 1 else "Lower Risk"
-            ins_label = "Insured" if insurance_val == 1 else "Uninsured"
-            combined_label = f"{risk_group} | {ins_label}"
-
-            if prediction_persistent == 1 and insurance_val == 0:
-                card_color = "#e74c3c"
-                card_msg = "🔴 **Vulnerable Population**: High CKD risk without insurance — priority for intervention."
-            elif prediction_persistent == 1 and insurance_val == 1:
-                card_color = "#e67e22"
-                card_msg = "🟠 **Insured High Risk**: Insurance in place but elevated CKD risk — clinical follow-up recommended."
-            else:
-                card_color = "#27ae60"
-                card_msg = "🟢 **Lower Risk**: Encouraging profile — continue routine monitoring."
-
-            st.markdown(f"""
-            <div class="metric-card" style="border-left-color: {card_color};">
-                <h4>📊 Risk Group: {combined_label}</h4>
-                <p>{card_msg}</p>
-                <p style="font-size: 0.85em; color: #666;">Annual Income: ${income_val:,.0f}</p>
-            </div>
-            """, unsafe_allow_html=True)
-
-        st.divider()
-
-        # =================================================================
-        # SECTION G : DETAILED MEDICAL PROFILE
-        # =================================================================
-        st.header("🔬 Detailed Medical Profile")
-        st.caption("Complete patient-level medical profile from the Early Screening information.")
-
-        medical_sections_persistent = {
-            "Demographics & Anthropometrics": ["Age", "Gender", "Sex", "BMI", "Waist_Circumference_cm", "Annual_Household_Income_USD"],
-            "Blood Pressure & Vital Signs": ["Systolic_BP", "Diastolic_BP", "Pulse_Pressure", "Heart_Rate", "Respiratory_Rate", "Oxygen_Saturation"],
-            "Medical History & Comorbidities": ["Diabetes", "Hypertension", "Cardiovascular_Disease", "Heart_Failure", "Hyperlipidemia", "Family_History_CKD", "Obesity"],
-            "Lifestyle & Behaviour": ["Smoking_Status", "Alcohol_Consumption", "Physical_Activity_Level", "Sleep_Duration_Hours", "Stress_Level", "Lifestyle_Risk", "Poor_Sleep"],
-            "Healthcare & Insurance": ["Annual_Checkups", "Health_Insurance", "Medication_Adherence", "Annual_Household_Income_USD"]
-        }
-        for category, fields in medical_sections_persistent.items():
-            available = [f for f in fields if f in input_data_persistent.columns]
-            if available:
-                with st.expander(category, expanded=True):
-                    med_df = pd.DataFrame({
-                        "Medical Variable": [f.replace("_", " ") for f in available],
-                        "Patient Value": [input_data_persistent.iloc[0][f] for f in available]
-                    })
-                    st.dataframe(med_df, use_container_width=True, hide_index=True)
-
-        st.divider()
-
-        # =================================================================
-        # SECTION H : DOWNLOAD REPORT
-        # =================================================================
-        st.header("📥 Download Screening Report")
-
-        try:
-            report_df = input_data_persistent.copy()
-            report_df["CKD_Prediction"] = "High CKD Risk" if prediction_persistent == 1 else "Low CKD Risk"
-            report_df["Decision_Score"] = decision_score_persistent
-            report_df["Model"] = "Linear SVM"
-            csv_buffer = BytesIO()
-            report_df.to_csv(csv_buffer, index=False)
-            st.download_button(
-                label="📄 Download Full Screening Report (CSV)",
-                data=csv_buffer.getvalue(),
-                file_name="CKD_Screening_Report.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
-        except Exception as dl_err:
-            st.warning(f"Unable to generate CSV report: {dl_err}")
-
-        st.divider()
-
-        # =================================================================
-        # SECTION I : GO TO CLINICAL SCREENING (optional, separate section)
-        # =================================================================
-        st.header("➡️ Clinical Screening")
-        st.markdown(
-            "**Clinical Screening** is a separate, independent assessment "
-            "(CKD severity: Healthy / Mild / Moderate / Severe) with its own "
-            "intake form. It doesn't reuse anything entered here."
-        )
-
-        if st.button(
-            "🏥 Go to Clinical Screening →",
-            type="primary",
-            use_container_width=True,
-            key="proceed_to_clinical"
-        ):
-            st.session_state["target_section"] = "2️⃣ Clinical Screening"
-            st.rerun()
-
-
-# =============================================================================
-# END OF STEP 3
-# =============================================================================
-#
-# STEP 3 COMPLETE:
-#
-# ✓ Exact 49-feature model structure
-# ✓ Raw categorical values retained
-# ✓ No manual Yes/No → numeric conversion for categorical variables
-# ✓ Derived model features recreated
-# ✓ Exact model feature order verified
-# ✓ Final SVM pipeline loaded once with st.cache_resource
-# ✓ Prediction generated from the saved deployment pipeline
-# ✓ SVM decision score displayed
-# ✓ Prediction stored in session_state
-# ✓ Previous median-imputation / 'Yes' error addressed structurally
-#
-# NEXT:
-#
-# STEP 4 — CLINICAL REPORT TAB
-#
-# =============================================================================
-
-# STEP 2 OBJECTIVE:
-#
-# ✓ Separate CKD Screening tab
-# ✓ Patient information section
-# ✓ Body measurements
-# ✓ Blood pressure and vital signs
-# ✓ Lifestyle information
-# ✓ Medical history
-# ✓ Additional information
-# ✓ Proper three-column alignment
-# ✓ Dedicated screening button
-# ✓ No prediction yet
-# ✓ No numeric/string preprocessing conflict
-#
-# NEXT:
-#
-# STEP 3 — CONNECT THE EXACT PATIENT INPUTS TO THE SAVED SVM PIPELINE
-#
-# =============================================================================
-
-# =============================================================================
-# STEP 4 : CLINICAL SCREENING REPORT
-# =============================================================================
-#
-# Objective:
-# Create a clean clinical-style report using the prediction generated
-# in the CKD Screening tab.
-#
-# IMPORTANT:
-# This section does NOT run the SVM again.
-#
-# It reads:
-#
-#     st.session_state["prediction"]
-#     st.session_state["decision_score"]
-#     st.session_state["input_data"]
-#
-# generated by STEP 3.
-#
-# =============================================================================
-
-
-# =============================================================================
-# SECTION 4.1 : CLINICAL REPORT TAB
-# =============================================================================
-
-with tab_interpretation:
-
-    # =========================================================================
-    # PAGE HEADER
-    # =========================================================================
-
-    st.header(
-        "📋 Interpretation & Outcomes"
-    )
-
-    st.write(
-        """
-        This report summarises the patient's screening information, the
-        CKD-risk classification generated by the final Linear SVM, and how
-        that outcome should be interpreted.
-        """
-    )
-
-
-    # =========================================================================
-    # CHECK WHETHER SCREENING HAS BEEN COMPLETED
-    # =========================================================================
-
-    if "prediction" not in st.session_state:
-
-        st.warning(
-            "No CKD screening result is available yet."
-        )
 
         st.info(
             """
-            Please open the **🩺 CKD Prediction** tab, enter the patient
-            information and click **Predict CKD Risk** first.
+            The screening model uses non-kidney clinical and lifestyle
+            information for early risk assessment. The result is not a
+            definitive medical diagnosis.
             """
         )
 
 
-    else:
-
-        # =====================================================================
-        # RETRIEVE SCREENING RESULT
-        # =====================================================================
-
-        prediction = (
-            st.session_state[
-                "prediction"
-            ]
-        )
-
-        decision_score = (
-            st.session_state[
-                "decision_score"
-            ]
-        )
-
-        input_data = (
-            st.session_state[
-                "input_data"
-            ]
-        )
-
-
-        # =====================================================================
-        # REPORT HEADER
-        # =====================================================================
-
-        st.divider()
-
-        report_col1, report_col2 = st.columns(
-            [2, 1]
-        )
-
-
-        with report_col1:
-
-            st.subheader(
-                "Patient Screening Summary"
-            )
-
-            st.write(
-                """
-                **Screening Type:** CKD Early Screening
-
-                **Model:** Final Linear SVM
-
-                **Screening Status:** Completed
-                """
-            )
-
-
-        with report_col2:
-
-            st.metric(
-                "Model Decision Score",
-                f"{decision_score:.4f}"
-            )
-
-
-        # =====================================================================
-        # PRIMARY RISK CLASSIFICATION & VISUAL SUMMARY
-        # =====================================================================
+        # =========================================================================
+        # SECTION 3.1 : DEMOGRAPHICS
+        # =========================================================================
 
         st.divider()
 
         st.subheader(
-            "🩺 CKD Risk Classification & Meter"
+            "👤 Demographic Information"
         )
 
-        render_visual_prediction_summary(prediction, decision_score, key_suffix="prediction")
+        st.info(
+            "💡 **How to enter numbers:** use the units shown in brackets. "
+            "For example, blood pressure is entered as mmHg, height as cm, weight as kg, "
+            "and water intake as litres per day. You do not need to enter the model's internal 0/1 codes; use the Yes/No choices provided."
+        )
 
-        st.divider()
 
-        render_patient_health_badges(input_data)
+        col1, col2, col3 = st.columns(3)
 
 
-        # =====================================================================
-        # PATIENT PROFILE
-        # =====================================================================
+        with col1:
+
+            Age = st.number_input(
+                "Age (years)",
+                min_value=1,
+                max_value=120,
+                value=40,
+                step=1
+            )
+
+
+        with col2:
+
+            Sex = st.selectbox(
+                "Sex",
+                [
+                    "Female",
+                    "Male"
+                ]
+            )
+
+
+        with col3:
+
+            Ethnicity = st.selectbox(
+                "Ethnicity",
+                [
+                    "Asian",
+                    "Black",
+                    "Hispanic",
+                    "White",
+                    "Other"
+                ]
+            )
+
+
+        col4, col5, col6 = st.columns(3)
+
+
+        with col4:
+
+            Country = st.selectbox(
+                "Country",
+                [
+                    "Australia",
+                    "Canada",
+                    "India",
+                    "UK",
+                    "USA",
+                    "Other"
+                ]
+            )
+
+
+        with col5:
+
+            Residence_Type = st.selectbox(
+                "Residence Type",
+                [
+                    "Urban",
+                    "Rural"
+                ]
+            )
+
+
+        with col6:
+
+            Education_Level = st.selectbox(
+                "Education Level",
+                [
+                    "High School",
+                    "Some College",
+                    "Bachelor's",
+                    "Graduate"
+                ]
+            )
+
+
+        col7, col8 = st.columns(2)
+
+
+        with col7:
+
+            Socioeconomic_Status = st.selectbox(
+                "Socioeconomic Status",
+                [
+                    "Low",
+                    "Middle",
+                    "High"
+                ]
+            )
+
+
+        with col8:
+
+            Employment_Status = st.selectbox(
+                "Employment Status",
+                [
+                    "Employed",
+                    "Unemployed/Retired"
+                ]
+            )
+
+
+        # =========================================================================
+        # SECTION 3.2 : BODY COMPOSITION
+        # =========================================================================
 
         st.divider()
 
         st.subheader(
-            "👤 Patient Profile"
+            "⚖️ Body Composition"
         )
 
 
-        profile_col1, \
-        profile_col2, \
-        profile_col3, \
-        profile_col4 = st.columns(4)
+        col1, col2, col3 = st.columns(3)
 
 
-        with profile_col1:
+        with col1:
 
-            if "Age" in input_data.columns:
+            Height_cm = st.number_input(
+                "Height (cm)",
+                help="Enter height in centimetres. Example: 170 cm.",
+                min_value=50.0,
+                max_value=250.0,
+                value=170.0,
+                step=0.1
+            )
 
-                st.metric(
-                    "Age",
-                    f"{input_data['Age'].iloc[0]}"
+
+        with col2:
+
+            Weight_kg = st.number_input(
+                "Weight (kg)",
+                help="Enter body weight in kilograms. Example: 70 kg.",
+                min_value=10.0,
+                max_value=300.0,
+                value=70.0,
+                step=0.1
+            )
+
+
+        with col3:
+
+            BMI = st.number_input(
+                "BMI (kg/m²)",
+                help="Body Mass Index. If you know your BMI, enter it here.",
+                min_value=10.0,
+                max_value=80.0,
+                value=24.0,
+                step=0.1
+            )
+
+
+        col4, col5, col6 = st.columns(3)
+
+
+        with col4:
+
+            Waist_Circumference_cm = st.number_input(
+                "Waist Circumference (cm)",
+                help="Measure around the waist in centimetres.",
+                min_value=30.0,
+                max_value=200.0,
+                value=85.0,
+                step=0.1
+            )
+
+
+        with col5:
+
+            Body_Fat_Percentage = st.number_input(
+                "Body Fat (%)",
+                help="Estimated body-fat percentage, if known.",
+                min_value=1.0,
+                max_value=70.0,
+                value=25.0,
+                step=0.1
+            )
+
+
+        with col6:
+
+            Obesity = st.selectbox(
+                "Obesity",
+                [
+                    0,
+                    1
+                ],
+                format_func=lambda x: (
+                    "No" if x == 0 else "Yes"
                 )
+            )
 
 
-        with profile_col2:
+        # =========================================================================
+        # SECTION 3.3 : LIFESTYLE
+        # =========================================================================
 
-            if "Sex" in input_data.columns:
+        st.divider()
 
-                st.metric(
-                    "Sex",
-                    str(
-                        input_data["Sex"].iloc[0]
-                    )
+        st.subheader(
+            "🏃 Lifestyle Information"
+        )
+
+
+        col1, col2, col3 = st.columns(3)
+
+
+        with col1:
+
+            Smoking_Status = st.selectbox(
+                "Smoking Status",
+                [
+                    "Never",
+                    "Former",
+                    "Current"
+                ]
+            )
+
+
+        with col2:
+
+            Alcohol_Consumption = st.selectbox(
+                "Alcohol Consumption",
+                [
+                    "Low",
+                    "Moderate",
+                    "High"
+                ]
+            )
+
+
+        with col3:
+
+            Physical_Activity_Level = st.selectbox(
+                "Physical Activity Level",
+                [
+                    "Low",
+                    "Moderate",
+                    "Active"
+                ]
+            )
+
+
+        col4, col5, col6 = st.columns(3)
+
+
+        with col4:
+
+            Exercise_Hours_Per_Week = st.number_input(
+                "Exercise Hours / Week",
+                help="Approximate hours of exercise in a typical week.",
+                min_value=0.0,
+                max_value=50.0,
+                value=3.0,
+                step=0.5
+            )
+
+
+        with col5:
+
+            Daily_Steps = st.number_input(
+                "Daily Steps",
+                help="Approximate number of steps taken on a typical day.",
+                min_value=0,
+                max_value=100000,
+                value=7000,
+                step=500
+            )
+
+
+        with col6:
+
+            Water_Intake_L = st.number_input(
+                "Water Intake (litres/day)",
+                help="Approximate total water/fluid intake per day.",
+                min_value=0.0,
+                max_value=10.0,
+                value=2.0,
+                step=0.1
+            )
+
+
+        col7, col8, col9 = st.columns(3)
+
+
+        with col7:
+
+            Sodium_Intake_mg = st.number_input(
+                "Sodium Intake (mg/day)",
+                help="Approximate daily sodium intake, if known.",
+                min_value=0,
+                max_value=15000,
+                value=2300,
+                step=100
+            )
+
+
+        with col8:
+
+            Fast_Food_Frequency_Per_Week = st.number_input(
+                "Fast Food Meals / Week",
+                help="Approximate number of fast-food meals per week.",
+                min_value=0,
+                max_value=30,
+                value=2,
+                step=1
+            )
+
+
+        with col9:
+
+            Sleep_Duration_Hours = st.number_input(
+                "Sleep Duration (hours/night)",
+                help="Average hours of sleep per night.",
+                min_value=0.0,
+                max_value=24.0,
+                value=7.0,
+                step=0.5
+            )
+
+
+        # =========================================================================
+        # SECTION 3.4 : STRESS
+        # =========================================================================
+
+        st.divider()
+
+        st.subheader(
+            "🧠 Stress & Sleep"
+        )
+
+
+        Stress_Level = st.selectbox(
+            "Stress Level",
+            [
+                "Low",
+                "Moderate",
+                "High"
+            ]
+        )
+
+
+        # =========================================================================
+        # SECTION 3.5 : MEDICAL HISTORY
+        # =========================================================================
+
+        st.divider()
+
+        st.subheader(
+            "🏥 Medical History"
+        )
+
+
+        col1, col2, col3 = st.columns(3)
+
+
+        with col1:
+
+            Diabetes = st.selectbox(
+                "Diabetes",
+                [0, 1],
+                format_func=lambda x: (
+                    "No" if x == 0 else "Yes"
                 )
+            )
 
 
-        with profile_col3:
+        with col2:
 
-            if "BMI" in input_data.columns:
-
-                st.metric(
-                    "BMI",
-                    f"{input_data['BMI'].iloc[0]:.1f}"
+            Hypertension = st.selectbox(
+                "Hypertension",
+                [0, 1],
+                format_func=lambda x: (
+                    "No" if x == 0 else "Yes"
                 )
+            )
 
 
-        with profile_col4:
+        with col3:
 
-            if "Health_Insurance" in input_data.columns:
-
-                insurance_value = (
-                    input_data[
-                        "Health_Insurance"
-                    ].iloc[0]
+            Cardiovascular_Disease = st.selectbox(
+                "Cardiovascular Disease",
+                [0, 1],
+                format_func=lambda x: (
+                    "No" if x == 0 else "Yes"
                 )
+            )
 
-                insurance_label = (
-                    "Yes"
-                    if int(insurance_value) == 1
-                    else "No"
+
+        col4, col5, col6 = st.columns(3)
+
+
+        with col4:
+
+            Heart_Failure = st.selectbox(
+                "Heart Failure",
+                [0, 1],
+                format_func=lambda x: (
+                    "No" if x == 0 else "Yes"
                 )
+            )
 
-                st.metric(
-                    "Health Insurance",
-                    insurance_label
+
+        with col5:
+
+            Hyperlipidemia = st.selectbox(
+                "Hyperlipidemia",
+                [0, 1],
+                format_func=lambda x: (
+                    "No" if x == 0 else "Yes"
                 )
+            )
 
 
-        # =====================================================================
-        # VITAL SIGNS SUMMARY
-        # =====================================================================
+        with col6:
+
+            Kidney_Stones = st.selectbox(
+                "Kidney Stones",
+                [0, 1],
+                format_func=lambda x: (
+                    "No" if x == 0 else "Yes"
+                )
+            )
+
+
+        col7, col8, col9 = st.columns(3)
+
+
+        with col7:
+
+            Recurrent_UTI = st.selectbox(
+                "Recurrent UTI",
+                [0, 1],
+                format_func=lambda x: (
+                    "No" if x == 0 else "Yes"
+                )
+            )
+
+
+        with col8:
+
+            Autoimmune_Disease = st.selectbox(
+                "Autoimmune Disease",
+                [0, 1],
+                format_func=lambda x: (
+                    "No" if x == 0 else "Yes"
+                )
+            )
+
+
+        with col9:
+
+            Family_History_CKD = st.selectbox(
+                "Family History of CKD",
+                [0, 1],
+                format_func=lambda x: (
+                    "No" if x == 0 else "Yes"
+                )
+            )
+
+
+        # =========================================================================
+        # SECTION 3.6 : VITAL SIGNS
+        # =========================================================================
 
         st.divider()
 
@@ -2870,1838 +1744,3852 @@ with tab_interpretation:
         )
 
 
-        vital_col1, \
-        vital_col2, \
-        vital_col3, \
-        vital_col4 = st.columns(4)
+        col1, col2, col3 = st.columns(3)
 
 
-        with vital_col1:
+        with col1:
 
-            if "Systolic_BP" in input_data.columns:
-
-                st.metric(
-                    "Systolic BP",
-                    f"{input_data['Systolic_BP'].iloc[0]:.0f} mmHg"
-                )
-
-
-        with vital_col2:
-
-            if "Diastolic_BP" in input_data.columns:
-
-                st.metric(
-                    "Diastolic BP",
-                    f"{input_data['Diastolic_BP'].iloc[0]:.0f} mmHg"
-                )
-
-
-        with vital_col3:
-
-            if "Heart_Rate" in input_data.columns:
-
-                st.metric(
-                    "Heart Rate",
-                    f"{input_data['Heart_Rate'].iloc[0]:.0f} bpm"
-                )
-
-
-        with vital_col4:
-
-            if "Oxygen_Saturation" in input_data.columns:
-
-                st.metric(
-                    "Oxygen Saturation",
-                    f"{input_data['Oxygen_Saturation'].iloc[0]:.1f}%"
-                )
-
-
-        # =====================================================================
-        # DERIVED RISK INDICATORS
-        # =====================================================================
-
-        st.divider()
-
-        st.subheader(
-            "⚙️ Derived Risk Indicators"
-        )
-
-
-        indicator_col1, \
-        indicator_col2, \
-        indicator_col3, \
-        indicator_col4 = st.columns(4)
-
-
-        with indicator_col1:
-
-            if "Pulse_Pressure" in input_data.columns:
-
-                st.metric(
-                    "Pulse Pressure",
-                    f"{input_data['Pulse_Pressure'].iloc[0]:.1f}"
-                )
-
-
-        with indicator_col2:
-
-            if "Waist_to_Height" in input_data.columns:
-
-                st.metric(
-                    "Waist / Height",
-                    f"{input_data['Waist_to_Height'].iloc[0]:.3f}"
-                )
-
-
-        with indicator_col3:
-
-            if "Metabolic_Risk" in input_data.columns:
-
-                st.metric(
-                    "Metabolic Risk",
-                    f"{input_data['Metabolic_Risk'].iloc[0]:.0f}"
-                )
-
-
-        with indicator_col4:
-
-            if "CV_Risk" in input_data.columns:
-
-                st.metric(
-                    "CV Risk",
-                    f"{input_data['CV_Risk'].iloc[0]:.0f}"
-                )
-
-
-        # =====================================================================
-        # LIFESTYLE SUMMARY
-        # =====================================================================
-
-        st.divider()
-
-        st.subheader(
-            "🏃 Lifestyle Summary"
-        )
-
-
-        lifestyle_col1, \
-        lifestyle_col2, \
-        lifestyle_col3 = st.columns(3)
-
-
-        with lifestyle_col1:
-
-            if "Smoking_Status" in input_data.columns:
-
-                st.write(
-                    "**Smoking:**"
-                )
-
-                st.write(
-                    input_data[
-                        "Smoking_Status"
-                    ].iloc[0]
-                )
-
-
-        with lifestyle_col2:
-
-            if "Physical_Activity_Level" in input_data.columns:
-
-                st.write(
-                    "**Physical Activity:**"
-                )
-
-                st.write(
-                    input_data[
-                        "Physical_Activity_Level"
-                    ].iloc[0]
-                )
-
-
-        with lifestyle_col3:
-
-            if "Sleep_Duration_Hours" in input_data.columns:
-
-                st.write(
-                    "**Sleep Duration:**"
-                )
-
-                st.write(
-                    f"{input_data['Sleep_Duration_Hours'].iloc[0]:.1f} hours"
-                )
-
-
-        # =====================================================================
-        # MEDICAL HISTORY SUMMARY
-        # =====================================================================
-
-        st.divider()
-
-        st.subheader(
-            "🏥 Medical History Summary"
-        )
-
-
-        medical_variables = [
-            "Diabetes",
-            "Hypertension",
-            "Cardiovascular_Disease",
-            "Heart_Failure",
-            "Hyperlipidemia",
-            "Kidney_Stones",
-            "Recurrent_UTI",
-            "Autoimmune_Disease",
-            "Family_History_CKD"
-        ]
-
-
-        medical_data = []
-
-
-        for variable in medical_variables:
-
-            if variable in input_data.columns:
-
-                value = (
-                    input_data[
-                        variable
-                    ].iloc[0]
-                )
-
-
-                if int(value) == 1:
-
-                    status = "Yes"
-
-                else:
-
-                    status = "No"
-
-
-                medical_data.append(
-                    {
-                        "Condition": variable.replace(
-                            "_",
-                            " "
-                        ),
-                        "Present": status
-                    }
-                )
-
-
-        if medical_data:
-
-            medical_df = pd.DataFrame(
-                medical_data
+            Heart_Rate = st.number_input(
+                "Heart Rate (beats/min)",
+                min_value=30,
+                max_value=220,
+                value=72,
+                step=1
             )
 
 
-            st.dataframe(
-                medical_df,
-                use_container_width=True,
-                hide_index=True
+        with col2:
+
+            Respiratory_Rate = st.number_input(
+                "Respiratory Rate (/min)",
+                min_value=5,
+                max_value=60,
+                value=16,
+                step=1
             )
 
 
-        # =====================================================================
-        # SCREENING INTERPRETATION
-        # =====================================================================
+        with col3:
+
+            Oxygen_Saturation = st.number_input(
+                "Oxygen Saturation (%)",
+                help="Blood oxygen saturation (SpO₂), usually shown on a pulse oximeter.",
+                min_value=50.0,
+                max_value=100.0,
+                value=98.0,
+                step=0.1
+            )
+
+
+        col4, col5 = st.columns(2)
+
+
+        with col4:
+
+            Systolic_BP = st.number_input(
+                "Systolic Blood Pressure (mmHg)",
+                help="The top number of a blood-pressure reading. Example: 120/80 → enter 120.",
+                min_value=60,
+                max_value=250,
+                value=120,
+                step=1
+            )
+
+
+        with col5:
+
+            Diastolic_BP = st.number_input(
+                "Diastolic Blood Pressure (mmHg)",
+                help="The bottom number of a blood-pressure reading. Example: 120/80 → enter 80.",
+                min_value=30,
+                max_value=150,
+                value=80,
+                step=1
+            )
+
+
+        # A simple plain-language interpretation of the numerical vital signs.
+        # This is display-only and does not alter the values sent to the model.
+        bp_category_display = "Typical range"
+        if Systolic_BP >= 140 or Diastolic_BP >= 90:
+            bp_category_display = "Higher reading"
+        elif Systolic_BP >= 130 or Diastolic_BP >= 80:
+            bp_category_display = "Above typical range"
+        elif Systolic_BP < 90 or Diastolic_BP < 60:
+            bp_category_display = "Lower reading"
+
+        st.markdown(
+            f"**🩺 Blood pressure summary:** `{Systolic_BP:.0f}/{Diastolic_BP:.0f} mmHg` "
+            f"&nbsp; — &nbsp; **{bp_category_display}**",
+            unsafe_allow_html=True
+        )
+        st.caption("This quick label is only a user-friendly guide; it is not a diagnosis.")
+
+
+        # =========================================================================
+        # SECTION 3.7 : MEDICATION / HEALTHCARE
+        # =========================================================================
 
         st.divider()
 
         st.subheader(
-            "📝 Screening Interpretation"
+            "💊 Healthcare & Medication"
         )
 
 
-        if int(prediction) == 1:
+        col1, col2, col3 = st.columns(3)
 
-            st.warning(
-                """
-                The screening profile has been classified by the final
-                Linear SVM as **higher CKD risk**.
 
-                This result indicates that the patient's submitted
-                demographic, lifestyle, medical and physiological profile
-                resembles the CKD-risk class learned by the model.
+        with col1:
 
-                Further clinical evaluation may be appropriate based on
-                the patient's overall clinical context.
-                """
+            NSAID_Usage = st.selectbox(
+                "NSAID Usage",
+                [0, 1],
+                format_func=lambda x: (
+                    "No" if x == 0 else "Yes"
+                )
+            )
+
+
+        with col2:
+
+            Annual_Checkups = st.number_input(
+                "Health Checkups / Year",
+                help="Approximate number of routine health checkups in a year.",
+                min_value=0,
+                max_value=30,
+                value=1,
+                step=1
+            )
+
+
+        with col3:
+
+            Health_Insurance = st.selectbox(
+                "Health Insurance",
+                [0, 1],
+                format_func=lambda x: (
+                    "No" if x == 0 else "Yes"
+                )
+            )
+
+
+        # =========================================================================
+        # SECTION 3.8 : SOCIOECONOMIC INFORMATION
+        # =========================================================================
+
+        st.divider()
+
+        st.subheader(
+            "💰 Socioeconomic Information"
+        )
+
+
+        col1, col2 = st.columns(2)
+
+
+        with col1:
+
+            Annual_Household_Income_USD = st.number_input(
+                "Annual Household Income (USD)",
+                help="Enter annual household income in USD to match the model's training data.",
+                min_value=0,
+                max_value=1000000,
+                value=60000,
+                step=1000
+            )
+
+
+        with col2:
+
+            st.write(
+                " "
+            )
+
+            st.caption(
+                "Income is entered in USD to match the training dataset."
+            )
+
+
+        # =========================================================================
+        # SECTION 3.9 : DERIVED MODEL FEATURES
+        # =========================================================================
+
+        # -------------------------------------------------------------------------
+        # Pulse Pressure
+        # -------------------------------------------------------------------------
+
+        Pulse_Pressure = (
+            Systolic_BP -
+            Diastolic_BP
+        )
+
+
+        # -------------------------------------------------------------------------
+        # Waist-to-Height Ratio
+        # -------------------------------------------------------------------------
+
+        if Height_cm > 0:
+
+            Waist_to_Height = (
+                Waist_Circumference_cm /
+                Height_cm
             )
 
         else:
 
-            st.success(
-                """
-                The screening profile has been classified by the final
-                Linear SVM as **lower CKD risk**.
+            Waist_to_Height = 0.0
 
-                This indicates that the patient's submitted profile was
-                classified in the lower-risk class by the screening model.
 
-                A lower modelled risk does not rule out disease or replace
-                routine medical assessment.
-                """
+        # -------------------------------------------------------------------------
+        # Lifestyle Risk
+        # -------------------------------------------------------------------------
+
+        Lifestyle_Risk = (
+            int(
+                Smoking_Status == "Current"
+            )
+            +
+            int(
+                Alcohol_Consumption == "High"
+            )
+            +
+            int(
+                Physical_Activity_Level == "Low"
+            )
+        )
+
+
+        # -------------------------------------------------------------------------
+        # Metabolic Risk
+        # -------------------------------------------------------------------------
+
+        Metabolic_Risk = (
+            Diabetes
+            +
+            Hypertension
+            +
+            Obesity
+        )
+
+
+        # -------------------------------------------------------------------------
+        # Cardiovascular Risk
+        # -------------------------------------------------------------------------
+
+        CV_Risk = (
+            Cardiovascular_Disease
+            +
+            Heart_Failure
+            +
+            Hyperlipidemia
+        )
+
+
+        # -------------------------------------------------------------------------
+        # Poor Sleep
+        # -------------------------------------------------------------------------
+
+        Poor_Sleep = int(
+            Sleep_Duration_Hours < 6
+            or
+            Sleep_Duration_Hours > 9
+        )
+
+
+        # =========================================================================
+        # SECTION 3.10 : BLOOD PRESSURE CATEGORY
+        # =========================================================================
+
+        if Systolic_BP < 120 and Diastolic_BP < 80:
+
+            Blood_Pressure_Category = "Normal"
+
+        elif (
+            120 <= Systolic_BP < 130
+            and
+            Diastolic_BP < 80
+        ):
+
+            Blood_Pressure_Category = "Elevated"
+
+        elif (
+            130 <= Systolic_BP < 140
+            or
+            80 <= Diastolic_BP < 90
+        ):
+
+            Blood_Pressure_Category = (
+                "Hypertension Stage 1"
+            )
+
+        else:
+
+            Blood_Pressure_Category = (
+                "Hypertension Stage 2"
             )
 
 
-        # =====================================================================
-        # DECISION SCORE EXPLANATION
-        # =====================================================================
+        # =========================================================================
+        # SECTION 3.11 : SHOW DERIVED VARIABLES
+        # =========================================================================
 
         st.divider()
 
         st.subheader(
-            "📐 SVM Decision Score"
+            "⚙️ Derived Screening Indicators"
         )
 
 
-        st.write(
-            f"""
-            **Decision Score: {decision_score:.4f}**
-            """
-        )
+        derived_col1, \
+        derived_col2, \
+        derived_col3, \
+        derived_col4, \
+        derived_col5 = st.columns(5)
+
+
+        with derived_col1:
+
+            st.metric(
+                "Pulse Pressure",
+                f"{Pulse_Pressure:.1f}"
+            )
+
+
+        with derived_col2:
+
+            st.metric(
+                "Waist / Height",
+                f"{Waist_to_Height:.3f}"
+            )
+
+
+        with derived_col3:
+
+            st.metric(
+                "Lifestyle Risk",
+                f"{Lifestyle_Risk}"
+            )
+
+
+        with derived_col4:
+
+            st.metric(
+                "Metabolic Risk",
+                f"{Metabolic_Risk}"
+            )
+
+
+        with derived_col5:
+
+            st.metric(
+                "CV Risk",
+                f"{CV_Risk}"
+            )
 
 
         st.caption(
-            """
-            The SVM decision score represents the model's position relative
-            to its classification boundary. It should not be interpreted
-            as a percentage probability of having CKD.
-            """
+            f"Blood Pressure Category: **{Blood_Pressure_Category}** "
+            f"| Poor Sleep Indicator: **{Poor_Sleep}**"
         )
 
 
-        # =====================================================================
-        # REPORT DATA
-        # =====================================================================
+        # =========================================================================
+        # SECTION 3.12 : CREATE EXACT MODEL INPUT
+        # =========================================================================
+
+        input_data = pd.DataFrame(
+            {
+                "Age": [Age],
+                "Sex": [Sex],
+                "Ethnicity": [Ethnicity],
+                "Country": [Country],
+                "Residence_Type": [Residence_Type],
+                "Education_Level": [Education_Level],
+                "Socioeconomic_Status": [Socioeconomic_Status],
+
+                "Height_cm": [Height_cm],
+                "Weight_kg": [Weight_kg],
+                "BMI": [BMI],
+                "Waist_Circumference_cm": [
+                    Waist_Circumference_cm
+                ],
+                "Body_Fat_Percentage": [
+                    Body_Fat_Percentage
+                ],
+
+                "Smoking_Status": [Smoking_Status],
+                "Alcohol_Consumption": [
+                    Alcohol_Consumption
+                ],
+                "Physical_Activity_Level": [
+                    Physical_Activity_Level
+                ],
+
+                "Exercise_Hours_Per_Week": [
+                    Exercise_Hours_Per_Week
+                ],
+                "Daily_Steps": [Daily_Steps],
+                "Water_Intake_L": [Water_Intake_L],
+                "Sodium_Intake_mg": [
+                    Sodium_Intake_mg
+                ],
+                "Fast_Food_Frequency_Per_Week": [
+                    Fast_Food_Frequency_Per_Week
+                ],
+                "Sleep_Duration_Hours": [
+                    Sleep_Duration_Hours
+                ],
+
+                "Stress_Level": [Stress_Level],
+
+                "Diabetes": [Diabetes],
+                "Hypertension": [Hypertension],
+                "Cardiovascular_Disease": [
+                    Cardiovascular_Disease
+                ],
+                "Heart_Failure": [Heart_Failure],
+                "Hyperlipidemia": [Hyperlipidemia],
+                "Kidney_Stones": [Kidney_Stones],
+                "Recurrent_UTI": [Recurrent_UTI],
+                "Autoimmune_Disease": [
+                    Autoimmune_Disease
+                ],
+                "Family_History_CKD": [
+                    Family_History_CKD
+                ],
+                "Obesity": [Obesity],
+
+                "Heart_Rate": [Heart_Rate],
+                "Respiratory_Rate": [
+                    Respiratory_Rate
+                ],
+                "Oxygen_Saturation": [
+                    Oxygen_Saturation
+                ],
+
+                "Systolic_BP": [Systolic_BP],
+                "Diastolic_BP": [Diastolic_BP],
+
+                "Blood_Pressure_Category": [
+                    Blood_Pressure_Category
+                ],
+
+                "NSAID_Usage": [NSAID_Usage],
+                "Annual_Checkups": [
+                    Annual_Checkups
+                ],
+                "Health_Insurance": [
+                    Health_Insurance
+                ],
+                "Annual_Household_Income_USD": [
+                    Annual_Household_Income_USD
+                ],
+                "Employment_Status": [
+                    Employment_Status
+                ],
+
+                "Pulse_Pressure": [
+                    Pulse_Pressure
+                ],
+                "Waist_to_Height": [
+                    Waist_to_Height
+                ],
+                "Lifestyle_Risk": [
+                    Lifestyle_Risk
+                ],
+                "Metabolic_Risk": [
+                    Metabolic_Risk
+                ],
+                "CV_Risk": [
+                    CV_Risk
+                ],
+                "Poor_Sleep": [
+                    Poor_Sleep
+                ]
+            }
+        )
+
+
+        # =========================================================================
+        # SECTION 3.13 : VERIFY MODEL FEATURE ORDER
+        # =========================================================================
+
+        expected_features = list(
+            final_svm_pipeline.feature_names_in_
+        )
+
+
+        missing_features = [
+            feature
+            for feature in expected_features
+            if feature not in input_data.columns
+        ]
+
+
+        extra_features = [
+            feature
+            for feature in input_data.columns
+            if feature not in expected_features
+        ]
+
+
+        if missing_features:
+
+            st.error(
+                "Model input is missing required features:"
+            )
+
+            st.write(
+                missing_features
+            )
+
+            st.stop()
+
+
+        if extra_features:
+
+            input_data = input_data.drop(
+                columns=extra_features
+            )
+
+
+        input_data = input_data[
+            expected_features
+        ]
+
+
+        # =========================================================================
+        # SECTION 3.14 : RUN SCREENING
+        # =========================================================================
 
         st.divider()
 
         st.subheader(
-            "📄 Screening Data"
+            "🚀 Run CKD Screening"
         )
 
 
-        with st.expander(
-            "View model input data"
-        ):
-
-            st.dataframe(
-                input_data.T,
-                use_container_width=True
-            )
-
-
-        # =====================================================================
-        # DOWNLOAD REPORT DATA
-        # =====================================================================
-
-        report_data = input_data.copy()
-
-
-        report_data[
-            "Predicted_CKD_Risk"
-        ] = (
-            "Higher CKD Risk"
-            if int(prediction) == 1
-            else "Lower CKD Risk"
-        )
-
-
-        report_data[
-            "SVM_Decision_Score"
-        ] = decision_score
-
-
-        report_csv = (
-            report_data
-            .to_csv(
-                index=False
-            )
-            .encode(
-                "utf-8"
-            )
-        )
-
-
-        st.download_button(
-            label="📥 Download Screening Report",
-            data=report_csv,
-            file_name="CKD_Screening_Report.csv",
-            mime="text/csv",
+        run_screening = st.button(
+            "🔍 Predict CKD Risk",
+            type="primary",
             use_container_width=True
         )
 
 
+        # =========================================================================
+        # SECTION 3.15 : MODEL PREDICTION
+        # =========================================================================
+
+        if run_screening:
+
+            if not MODEL_LOADED:
+
+                st.error(
+                    "The CKD SVM model could not be loaded."
+                )
+
+            else:
+
+                try:
+
+                    # -------------------------------------------------------------
+                    # Prediction
+                    # -------------------------------------------------------------
+
+                    prediction = (
+                        final_svm_pipeline.predict(
+                            input_data
+                        )[0]
+                    )
+
+
+                    # -------------------------------------------------------------
+                    # Decision score
+                    # -------------------------------------------------------------
+
+                    decision_score = (
+                        final_svm_pipeline
+                        .decision_function(
+                            input_data
+                        )[0]
+                    )
+
+
+                    # -------------------------------------------------------------
+                    # Save result in session state
+                    # -------------------------------------------------------------
+
+                    st.session_state[
+                        "prediction"
+                    ] = prediction
+
+                    st.session_state[
+                        "decision_score"
+                    ] = decision_score
+
+                    st.session_state[
+                        "input_data"
+                    ] = input_data.copy()
+
+                    # ---- STAY ON EARLY SCREENING ----
+                    # Do NOT auto-redirect. Let the user see the full
+                    # prediction results dashboard before navigating.
+
+                    st.rerun()
+
+                except Exception as prediction_error:
+
+                    st.error(
+                        "Prediction failed."
+                    )
+
+                    st.exception(
+                        prediction_error
+                    )
+
         # =====================================================================
-        # CLINICAL DISCLAIMER
+        # COMPREHENSIVE PREDICTION RESULTS DASHBOARD
+        # =====================================================================
+        # After a successful prediction, this rich dashboard is displayed
+        # directly on the prediction tab so users see ALL analysis at once.
+        # =====================================================================
+        if "prediction" in st.session_state and "input_data" in st.session_state:
+            input_data_persistent = st.session_state["input_data"]
+            prediction_persistent = int(st.session_state["prediction"])
+            decision_score_persistent = float(st.session_state.get("decision_score", 0.0))
+
+            st.divider()
+
+            # --- SUCCESS BANNER ---
+            st.success(
+                "✅ **CKD Early Screening completed successfully!** "
+                "Review your comprehensive results below."
+            )
+
+            # =================================================================
+            # SECTION A : RISK CLASSIFICATION & GAUGE
+            # =================================================================
+            st.header("🎯 Risk Classification & Decision Signal")
+            st.caption("Visual summary of the SVM screening model's assessment.")
+
+            render_visual_prediction_summary(prediction_persistent, decision_score_persistent, key_suffix="interpretation")
+
+            st.divider()
+
+            # =================================================================
+            # SECTION B : HEALTH FACTOR BADGES
+            # =================================================================
+            render_patient_health_badges(input_data_persistent)
+
+            st.divider()
+
+            # =================================================================
+            # SECTION C : MODEL PERFORMANCE KPIs
+            # =================================================================
+            st.header("📊 Model Performance Metrics")
+            st.caption(f"Source: {evaluation_source}")
+
+            kpi_col1, kpi_col2, kpi_col3, kpi_col4, kpi_col5 = st.columns(5)
+            with kpi_col1:
+                st.metric("Accuracy", f"{svm_accuracy:.3f}")
+            with kpi_col2:
+                st.metric("Precision", f"{svm_precision:.3f}")
+            with kpi_col3:
+                st.metric("Recall", f"{svm_recall:.3f}")
+            with kpi_col4:
+                st.metric("F1 Score", f"{svm_f1:.3f}")
+            with kpi_col5:
+                st.metric("ROC AUC", f"{svm_roc_auc:.3f}")
+
+            with st.expander("📖 What do these metrics mean?", expanded=False):
+                st.markdown("""
+                | Metric | Meaning |
+                |--------|---------|
+                | **Accuracy** | Overall percentage of correct predictions |
+                | **Precision** | Of those flagged as high-risk, how many truly are |
+                | **Recall** | Of all actual high-risk patients, how many were caught |
+                | **F1 Score** | Balanced harmonic mean of Precision and Recall |
+                | **ROC AUC** | Model's ability to distinguish between risk classes (1.0 = perfect) |
+
+                > **Clinical Note:** For screening, **Recall** is the most critical metric — we want to
+                > minimise missed high-risk patients (false negatives). The Linear SVM was selected
+                > specifically because it records the highest recall among deployment candidates.
+                """)
+
+            st.divider()
+
+            # =================================================================
+            # SECTION D : INTERACTIVE RISK PROFILE RADAR CHART
+            # =================================================================
+            st.header("📈 Interactive Risk Profile Visualisation")
+            st.caption("Radar chart showing the patient's risk scores across all derived clinical dimensions.")
+
+            try:
+                row = input_data_persistent.iloc[0]
+
+                # Gather risk dimensions
+                meta_risk = _safe_int(row.get("Metabolic_Risk"), 0)
+                cv_risk = _safe_int(row.get("CV_Risk"), 0)
+                ls_risk = _safe_int(row.get("Lifestyle_Risk"), 0)
+                poor_sleep = _safe_int(row.get("Poor_Sleep"), 0)
+                bmi_val = _safe_float(row.get("BMI"), 24.0)
+                sys_bp = _safe_float(row.get("Systolic_BP"), 120.0)
+
+                # Normalise to 0–1 scale for radar
+                bmi_norm = min(bmi_val / 45.0, 1.0)
+                bp_norm = min(sys_bp / 200.0, 1.0)
+                meta_norm = meta_risk / 3.0
+                cv_norm = cv_risk / 3.0
+                ls_norm = ls_risk / 3.0
+                sleep_norm = float(poor_sleep)
+
+                radar_categories = [
+                    "Metabolic Risk", "CV Risk", "Lifestyle Risk",
+                    "Sleep Quality", "BMI Index", "Blood Pressure"
+                ]
+                radar_values = [meta_norm, cv_norm, ls_norm, sleep_norm, bmi_norm, bp_norm]
+                # Close the radar
+                radar_values_closed = radar_values + [radar_values[0]]
+                radar_categories_closed = radar_categories + [radar_categories[0]]
+
+                radar_col1, radar_col2 = st.columns([1.5, 1])
+
+                with radar_col1:
+                    fig_radar = go.Figure()
+                    fig_radar.add_trace(go.Scatterpolar(
+                        r=radar_values_closed,
+                        theta=radar_categories_closed,
+                        fill="toself",
+                        fillcolor="rgba(231, 76, 60, 0.15)" if prediction_persistent == 1 else "rgba(39, 174, 96, 0.15)",
+                        line=dict(
+                            color="#e74c3c" if prediction_persistent == 1 else "#27ae60",
+                            width=2.5
+                        ),
+                        name="Patient Risk Profile",
+                        hovertemplate="<b>%{theta}</b><br>Score: %{r:.2f}<extra></extra>"
+                    ))
+                    fig_radar.update_layout(
+                        polar=dict(
+                            radialaxis=dict(visible=True, range=[0, 1], tickfont=dict(size=10)),
+                            angularaxis=dict(tickfont=dict(size=12))
+                        ),
+                        showlegend=False,
+                        height=420,
+                        margin=dict(l=60, r=60, t=40, b=40),
+                        paper_bgcolor="rgba(0,0,0,0)"
+                    )
+                    st.plotly_chart(fig_radar, use_container_width=True)
+
+                with radar_col2:
+                    st.markdown("##### Risk Score Breakdown")
+                    risk_items = [
+                        ("🔴" if meta_risk >= 2 else "🟡" if meta_risk == 1 else "🟢",
+                         "Metabolic Risk", f"{meta_risk}/3"),
+                        ("🔴" if cv_risk >= 2 else "🟡" if cv_risk == 1 else "🟢",
+                         "CV Risk", f"{cv_risk}/3"),
+                        ("🔴" if ls_risk >= 2 else "🟡" if ls_risk == 1 else "🟢",
+                         "Lifestyle Risk", f"{ls_risk}/3"),
+                        ("🟡" if poor_sleep == 1 else "🟢",
+                         "Sleep Quality", "Suboptimal" if poor_sleep == 1 else "Optimal"),
+                        ("🔴" if bmi_val >= 30 else "🟡" if bmi_val >= 25 else "🟢",
+                         "BMI", f"{bmi_val:.1f}"),
+                        ("🔴" if sys_bp >= 140 else "🟡" if sys_bp >= 120 else "🟢",
+                         "Systolic BP", f"{sys_bp:.0f} mmHg"),
+                    ]
+                    for icon, label, value in risk_items:
+                        st.markdown(f"{icon} **{label}:** {value}")
+
+            except Exception as radar_err:
+                st.warning(f"Unable to render risk profile radar chart: {radar_err}")
+
+            st.divider()
+
+            # =================================================================
+            # SECTION E : CLINICAL INTERPRETATION & RECOMMENDATIONS
+            # =================================================================
+            st.header("📋 Clinical Interpretation & Recommendations")
+
+            if prediction_persistent == 1:
+                st.markdown("""
+                <div class="risk-banner-high">
+                    <h3 style="margin-top:0; color:#c0392b;">⚠️ Key Clinical Findings — Higher CKD Risk</h3>
+                    <p style="font-size: 1.0em; line-height: 1.7;">
+                        The Linear SVM screening model has placed this patient's profile on the
+                        <b>higher-risk side</b> of the classification boundary. This means the
+                        combination of demographic, lifestyle, and clinical features indicates
+                        elevated risk for Chronic Kidney Disease.
+                    </p>
+                    <hr style="border-top: 1px solid #f5c6cb; margin: 12px 0;">
+                    <h4 style="color:#c0392b;">Recommended Actions:</h4>
+                    <ol style="font-size: 0.95em; line-height: 1.8;">
+                        <li>📋 <b>Clinical Tests:</b> Order <b>eGFR</b>, <b>Serum Creatinine</b>, and <b>Urine ACR</b></li>
+                        <li>🩺 <b>Medical Review:</b> Schedule consultation with a nephrologist or general practitioner</li>
+                        <li>💊 <b>Medication Review:</b> Assess current medication adherence and nephrotoxic drug exposure</li>
+                        <li>🏃 <b>Lifestyle Modifications:</b> Address modifiable risk factors (smoking, diet, physical activity)</li>
+                        <li>📊 <b>Follow-up:</b> Proceed to <b>Clinical Screening</b> for severity classification</li>
+                    </ol>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown("""
+                <div class="risk-banner-low">
+                    <h3 style="margin-top:0; color:#27ae60;">✅ Key Clinical Findings — Lower CKD Risk</h3>
+                    <p style="font-size: 1.0em; line-height: 1.7;">
+                        The screening model has placed this patient's profile on the
+                        <b>lower-risk side</b> of the classification boundary. This is reassuring,
+                        but <b>does not rule out kidney disease</b>.
+                    </p>
+                    <hr style="border-top: 1px solid #c3e6cb; margin: 12px 0;">
+                    <h4 style="color:#27ae60;">Recommended Actions:</h4>
+                    <ol style="font-size: 0.95em; line-height: 1.8;">
+                        <li>✅ <b>Routine Monitoring:</b> Continue regular annual health check-ups</li>
+                        <li>🩺 <b>Discuss Symptoms:</b> Report any new symptoms to a healthcare professional</li>
+                        <li>🏃 <b>Healthy Lifestyle:</b> Maintain balanced diet, regular exercise, adequate hydration</li>
+                        <li>📊 <b>Optional:</b> Proceed to <b>Clinical Screening</b> for detailed severity assessment</li>
+                    </ol>
+                </div>
+                """, unsafe_allow_html=True)
+
+            st.divider()
+
+            # =================================================================
+            # SECTION F : INSURANCE RISK SUMMARY
+            # =================================================================
+            st.header("💰 Insurance Risk Summary")
+
+            ins_col1, ins_col2 = st.columns(2)
+            insurance_val = _safe_int(input_data_persistent.iloc[0].get("Health_Insurance", 0), 0)
+            income_val = _safe_float(input_data_persistent.iloc[0].get("Annual_Household_Income_USD", 0), 0)
+
+            with ins_col1:
+                if insurance_val == 1:
+                    st.markdown("""
+                    <div class="metric-card">
+                        <h4>🛡️ Insurance Status: <span style="color:#27ae60;">Insured</span></h4>
+                        <p>This patient has health insurance coverage.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown("""
+                    <div class="metric-card" style="border-left-color: #e74c3c;">
+                        <h4>⚠️ Insurance Status: <span style="color:#e74c3c;">Uninsured</span></h4>
+                        <p>This patient does <b>not</b> have health insurance coverage.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            with ins_col2:
+                risk_group = "Higher Risk" if prediction_persistent == 1 else "Lower Risk"
+                ins_label = "Insured" if insurance_val == 1 else "Uninsured"
+                combined_label = f"{risk_group} | {ins_label}"
+
+                if prediction_persistent == 1 and insurance_val == 0:
+                    card_color = "#e74c3c"
+                    card_msg = "🔴 **Vulnerable Population**: High CKD risk without insurance — priority for intervention."
+                elif prediction_persistent == 1 and insurance_val == 1:
+                    card_color = "#e67e22"
+                    card_msg = "🟠 **Insured High Risk**: Insurance in place but elevated CKD risk — clinical follow-up recommended."
+                else:
+                    card_color = "#27ae60"
+                    card_msg = "🟢 **Lower Risk**: Encouraging profile — continue routine monitoring."
+
+                st.markdown(f"""
+                <div class="metric-card" style="border-left-color: {card_color};">
+                    <h4>📊 Risk Group: {combined_label}</h4>
+                    <p>{card_msg}</p>
+                    <p style="font-size: 0.85em; color: #666;">Annual Income: ${income_val:,.0f}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+            st.divider()
+
+            # =================================================================
+            # SECTION G : DETAILED MEDICAL PROFILE
+            # =================================================================
+            st.header("🔬 Detailed Medical Profile")
+            st.caption("Complete patient-level medical profile from the Early Screening information.")
+
+            medical_sections_persistent = {
+                "Demographics & Anthropometrics": ["Age", "Gender", "Sex", "BMI", "Waist_Circumference_cm", "Annual_Household_Income_USD"],
+                "Blood Pressure & Vital Signs": ["Systolic_BP", "Diastolic_BP", "Pulse_Pressure", "Heart_Rate", "Respiratory_Rate", "Oxygen_Saturation"],
+                "Medical History & Comorbidities": ["Diabetes", "Hypertension", "Cardiovascular_Disease", "Heart_Failure", "Hyperlipidemia", "Family_History_CKD", "Obesity"],
+                "Lifestyle & Behaviour": ["Smoking_Status", "Alcohol_Consumption", "Physical_Activity_Level", "Sleep_Duration_Hours", "Stress_Level", "Lifestyle_Risk", "Poor_Sleep"],
+                "Healthcare & Insurance": ["Annual_Checkups", "Health_Insurance", "Medication_Adherence", "Annual_Household_Income_USD"]
+            }
+            for category, fields in medical_sections_persistent.items():
+                available = [f for f in fields if f in input_data_persistent.columns]
+                if available:
+                    with st.expander(category, expanded=True):
+                        med_df = pd.DataFrame({
+                            "Medical Variable": [f.replace("_", " ") for f in available],
+                            "Patient Value": [input_data_persistent.iloc[0][f] for f in available]
+                        })
+                        st.dataframe(med_df, use_container_width=True, hide_index=True)
+
+            st.divider()
+
+            # =================================================================
+            # SECTION H : DOWNLOAD REPORT
+            # =================================================================
+            st.header("📥 Download Screening Report")
+
+            try:
+                report_df = input_data_persistent.copy()
+                report_df["CKD_Prediction"] = "High CKD Risk" if prediction_persistent == 1 else "Low CKD Risk"
+                report_df["Decision_Score"] = decision_score_persistent
+                report_df["Model"] = "Linear SVM"
+                csv_buffer = BytesIO()
+                report_df.to_csv(csv_buffer, index=False)
+                st.download_button(
+                    label="📄 Download Full Screening Report (CSV)",
+                    data=csv_buffer.getvalue(),
+                    file_name="CKD_Screening_Report.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+            except Exception as dl_err:
+                st.warning(f"Unable to generate CSV report: {dl_err}")
+
+            st.divider()
+
+            # =================================================================
+            # SECTION I : GO TO CLINICAL SCREENING (optional, separate section)
+            # =================================================================
+            st.header("➡️ Clinical Screening")
+            st.markdown(
+                "**Clinical Screening** is a separate, independent assessment "
+                "(CKD severity: Healthy / Mild / Moderate / Severe) with its own "
+                "intake form. It doesn't reuse anything entered here."
+            )
+
+            if st.button(
+                "🏥 Go to Clinical Screening →",
+                type="primary",
+                use_container_width=True,
+                key="proceed_to_clinical"
+            ):
+                st.session_state["target_section"] = "2️⃣ Clinical Screening"
+                st.rerun()
+
+
+    # =============================================================================
+    # END OF STEP 3
+    # =============================================================================
+    #
+    # STEP 3 COMPLETE:
+    #
+    # ✓ Exact 49-feature model structure
+    # ✓ Raw categorical values retained
+    # ✓ No manual Yes/No → numeric conversion for categorical variables
+    # ✓ Derived model features recreated
+    # ✓ Exact model feature order verified
+    # ✓ Final SVM pipeline loaded once with st.cache_resource
+    # ✓ Prediction generated from the saved deployment pipeline
+    # ✓ SVM decision score displayed
+    # ✓ Prediction stored in session_state
+    # ✓ Previous median-imputation / 'Yes' error addressed structurally
+    #
+    # NEXT:
+    #
+    # STEP 4 — CLINICAL REPORT TAB
+    #
+    # =============================================================================
+
+    # STEP 2 OBJECTIVE:
+    #
+    # ✓ Separate CKD Screening tab
+    # ✓ Patient information section
+    # ✓ Body measurements
+    # ✓ Blood pressure and vital signs
+    # ✓ Lifestyle information
+    # ✓ Medical history
+    # ✓ Additional information
+    # ✓ Proper three-column alignment
+    # ✓ Dedicated screening button
+    # ✓ No prediction yet
+    # ✓ No numeric/string preprocessing conflict
+    #
+    # NEXT:
+    #
+    # STEP 3 — CONNECT THE EXACT PATIENT INPUTS TO THE SAVED SVM PIPELINE
+    #
+    # =============================================================================
+
+    # =============================================================================
+    # STEP 4 : CLINICAL SCREENING REPORT
+    # =============================================================================
+    #
+    # Objective:
+    # Create a clean clinical-style report using the prediction generated
+    # in the CKD Screening tab.
+    #
+    # IMPORTANT:
+    # This section does NOT run the SVM again.
+    #
+    # It reads:
+    #
+    #     st.session_state["prediction"]
+    #     st.session_state["decision_score"]
+    #     st.session_state["input_data"]
+    #
+    # generated by STEP 3.
+    #
+    # =============================================================================
+
+
+    # =============================================================================
+    # SECTION 4.1 : CLINICAL REPORT TAB
+    # =============================================================================
+
+if main_early_screening:
+    with tab_interpretation:
+
+        # =========================================================================
+        # PAGE HEADER
+        # =========================================================================
+
+        st.header(
+            "📋 Interpretation & Outcomes"
+        )
+
+        st.write(
+            """
+            This report summarises the patient's screening information, the
+            CKD-risk classification generated by the final Linear SVM, and how
+            that outcome should be interpreted.
+            """
+        )
+
+
+        # =========================================================================
+        # CHECK WHETHER SCREENING HAS BEEN COMPLETED
+        # =========================================================================
+
+        if "prediction" not in st.session_state:
+
+            st.warning(
+                "No CKD screening result is available yet."
+            )
+
+            st.info(
+                """
+                Please open the **🩺 CKD Prediction** tab, enter the patient
+                information and click **Predict CKD Risk** first.
+                """
+            )
+
+
+        else:
+
+            # =====================================================================
+            # RETRIEVE SCREENING RESULT
+            # =====================================================================
+
+            prediction = (
+                st.session_state[
+                    "prediction"
+                ]
+            )
+
+            decision_score = (
+                st.session_state[
+                    "decision_score"
+                ]
+            )
+
+            input_data = (
+                st.session_state[
+                    "input_data"
+                ]
+            )
+
+
+            # =====================================================================
+            # REPORT HEADER
+            # =====================================================================
+
+            st.divider()
+
+            report_col1, report_col2 = st.columns(
+                [2, 1]
+            )
+
+
+            with report_col1:
+
+                st.subheader(
+                    "Patient Screening Summary"
+                )
+
+                st.write(
+                    """
+                    **Screening Type:** CKD Early Screening
+
+                    **Model:** Final Linear SVM
+
+                    **Screening Status:** Completed
+                    """
+                )
+
+
+            with report_col2:
+
+                st.metric(
+                    "Model Decision Score",
+                    f"{decision_score:.4f}"
+                )
+
+
+            # =====================================================================
+            # PRIMARY RISK CLASSIFICATION & VISUAL SUMMARY
+            # =====================================================================
+
+            st.divider()
+
+            st.subheader(
+                "🩺 CKD Risk Classification & Meter"
+            )
+
+            render_visual_prediction_summary(prediction, decision_score, key_suffix="prediction")
+
+            st.divider()
+
+            render_patient_health_badges(input_data)
+
+
+            # =====================================================================
+            # PATIENT PROFILE
+            # =====================================================================
+
+            st.divider()
+
+            st.subheader(
+                "👤 Patient Profile"
+            )
+
+
+            profile_col1, \
+            profile_col2, \
+            profile_col3, \
+            profile_col4 = st.columns(4)
+
+
+            with profile_col1:
+
+                if "Age" in input_data.columns:
+
+                    st.metric(
+                        "Age",
+                        f"{input_data['Age'].iloc[0]}"
+                    )
+
+
+            with profile_col2:
+
+                if "Sex" in input_data.columns:
+
+                    st.metric(
+                        "Sex",
+                        str(
+                            input_data["Sex"].iloc[0]
+                        )
+                    )
+
+
+            with profile_col3:
+
+                if "BMI" in input_data.columns:
+
+                    st.metric(
+                        "BMI",
+                        f"{input_data['BMI'].iloc[0]:.1f}"
+                    )
+
+
+            with profile_col4:
+
+                if "Health_Insurance" in input_data.columns:
+
+                    insurance_value = (
+                        input_data[
+                            "Health_Insurance"
+                        ].iloc[0]
+                    )
+
+                    insurance_label = (
+                        "Yes"
+                        if int(insurance_value) == 1
+                        else "No"
+                    )
+
+                    st.metric(
+                        "Health Insurance",
+                        insurance_label
+                    )
+
+
+            # =====================================================================
+            # VITAL SIGNS SUMMARY
+            # =====================================================================
+
+            st.divider()
+
+            st.subheader(
+                "❤️ Vital Signs"
+            )
+
+
+            vital_col1, \
+            vital_col2, \
+            vital_col3, \
+            vital_col4 = st.columns(4)
+
+
+            with vital_col1:
+
+                if "Systolic_BP" in input_data.columns:
+
+                    st.metric(
+                        "Systolic BP",
+                        f"{input_data['Systolic_BP'].iloc[0]:.0f} mmHg"
+                    )
+
+
+            with vital_col2:
+
+                if "Diastolic_BP" in input_data.columns:
+
+                    st.metric(
+                        "Diastolic BP",
+                        f"{input_data['Diastolic_BP'].iloc[0]:.0f} mmHg"
+                    )
+
+
+            with vital_col3:
+
+                if "Heart_Rate" in input_data.columns:
+
+                    st.metric(
+                        "Heart Rate",
+                        f"{input_data['Heart_Rate'].iloc[0]:.0f} bpm"
+                    )
+
+
+            with vital_col4:
+
+                if "Oxygen_Saturation" in input_data.columns:
+
+                    st.metric(
+                        "Oxygen Saturation",
+                        f"{input_data['Oxygen_Saturation'].iloc[0]:.1f}%"
+                    )
+
+
+            # =====================================================================
+            # DERIVED RISK INDICATORS
+            # =====================================================================
+
+            st.divider()
+
+            st.subheader(
+                "⚙️ Derived Risk Indicators"
+            )
+
+
+            indicator_col1, \
+            indicator_col2, \
+            indicator_col3, \
+            indicator_col4 = st.columns(4)
+
+
+            with indicator_col1:
+
+                if "Pulse_Pressure" in input_data.columns:
+
+                    st.metric(
+                        "Pulse Pressure",
+                        f"{input_data['Pulse_Pressure'].iloc[0]:.1f}"
+                    )
+
+
+            with indicator_col2:
+
+                if "Waist_to_Height" in input_data.columns:
+
+                    st.metric(
+                        "Waist / Height",
+                        f"{input_data['Waist_to_Height'].iloc[0]:.3f}"
+                    )
+
+
+            with indicator_col3:
+
+                if "Metabolic_Risk" in input_data.columns:
+
+                    st.metric(
+                        "Metabolic Risk",
+                        f"{input_data['Metabolic_Risk'].iloc[0]:.0f}"
+                    )
+
+
+            with indicator_col4:
+
+                if "CV_Risk" in input_data.columns:
+
+                    st.metric(
+                        "CV Risk",
+                        f"{input_data['CV_Risk'].iloc[0]:.0f}"
+                    )
+
+
+            # =====================================================================
+            # LIFESTYLE SUMMARY
+            # =====================================================================
+
+            st.divider()
+
+            st.subheader(
+                "🏃 Lifestyle Summary"
+            )
+
+
+            lifestyle_col1, \
+            lifestyle_col2, \
+            lifestyle_col3 = st.columns(3)
+
+
+            with lifestyle_col1:
+
+                if "Smoking_Status" in input_data.columns:
+
+                    st.write(
+                        "**Smoking:**"
+                    )
+
+                    st.write(
+                        input_data[
+                            "Smoking_Status"
+                        ].iloc[0]
+                    )
+
+
+            with lifestyle_col2:
+
+                if "Physical_Activity_Level" in input_data.columns:
+
+                    st.write(
+                        "**Physical Activity:**"
+                    )
+
+                    st.write(
+                        input_data[
+                            "Physical_Activity_Level"
+                        ].iloc[0]
+                    )
+
+
+            with lifestyle_col3:
+
+                if "Sleep_Duration_Hours" in input_data.columns:
+
+                    st.write(
+                        "**Sleep Duration:**"
+                    )
+
+                    st.write(
+                        f"{input_data['Sleep_Duration_Hours'].iloc[0]:.1f} hours"
+                    )
+
+
+            # =====================================================================
+            # MEDICAL HISTORY SUMMARY
+            # =====================================================================
+
+            st.divider()
+
+            st.subheader(
+                "🏥 Medical History Summary"
+            )
+
+
+            medical_variables = [
+                "Diabetes",
+                "Hypertension",
+                "Cardiovascular_Disease",
+                "Heart_Failure",
+                "Hyperlipidemia",
+                "Kidney_Stones",
+                "Recurrent_UTI",
+                "Autoimmune_Disease",
+                "Family_History_CKD"
+            ]
+
+
+            medical_data = []
+
+
+            for variable in medical_variables:
+
+                if variable in input_data.columns:
+
+                    value = (
+                        input_data[
+                            variable
+                        ].iloc[0]
+                    )
+
+
+                    if int(value) == 1:
+
+                        status = "Yes"
+
+                    else:
+
+                        status = "No"
+
+
+                    medical_data.append(
+                        {
+                            "Condition": variable.replace(
+                                "_",
+                                " "
+                            ),
+                            "Present": status
+                        }
+                    )
+
+
+            if medical_data:
+
+                medical_df = pd.DataFrame(
+                    medical_data
+                )
+
+
+                st.dataframe(
+                    medical_df,
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+
+            # =====================================================================
+            # SCREENING INTERPRETATION
+            # =====================================================================
+
+            st.divider()
+
+            st.subheader(
+                "📝 Screening Interpretation"
+            )
+
+
+            if int(prediction) == 1:
+
+                st.warning(
+                    """
+                    The screening profile has been classified by the final
+                    Linear SVM as **higher CKD risk**.
+
+                    This result indicates that the patient's submitted
+                    demographic, lifestyle, medical and physiological profile
+                    resembles the CKD-risk class learned by the model.
+
+                    Further clinical evaluation may be appropriate based on
+                    the patient's overall clinical context.
+                    """
+                )
+
+            else:
+
+                st.success(
+                    """
+                    The screening profile has been classified by the final
+                    Linear SVM as **lower CKD risk**.
+
+                    This indicates that the patient's submitted profile was
+                    classified in the lower-risk class by the screening model.
+
+                    A lower modelled risk does not rule out disease or replace
+                    routine medical assessment.
+                    """
+                )
+
+
+            # =====================================================================
+            # DECISION SCORE EXPLANATION
+            # =====================================================================
+
+            st.divider()
+
+            st.subheader(
+                "📐 SVM Decision Score"
+            )
+
+
+            st.write(
+                f"""
+                **Decision Score: {decision_score:.4f}**
+                """
+            )
+
+
+            st.caption(
+                """
+                The SVM decision score represents the model's position relative
+                to its classification boundary. It should not be interpreted
+                as a percentage probability of having CKD.
+                """
+            )
+
+
+            # =====================================================================
+            # REPORT DATA
+            # =====================================================================
+
+            st.divider()
+
+            st.subheader(
+                "📄 Screening Data"
+            )
+
+
+            with st.expander(
+                "View model input data"
+            ):
+
+                st.dataframe(
+                    input_data.T,
+                    use_container_width=True
+                )
+
+
+            # =====================================================================
+            # DOWNLOAD REPORT DATA
+            # =====================================================================
+
+            report_data = input_data.copy()
+
+
+            report_data[
+                "Predicted_CKD_Risk"
+            ] = (
+                "Higher CKD Risk"
+                if int(prediction) == 1
+                else "Lower CKD Risk"
+            )
+
+
+            report_data[
+                "SVM_Decision_Score"
+            ] = decision_score
+
+
+            report_csv = (
+                report_data
+                .to_csv(
+                    index=False
+                )
+                .encode(
+                    "utf-8"
+                )
+            )
+
+
+            st.download_button(
+                label="📥 Download Screening Report",
+                data=report_csv,
+                file_name="CKD_Screening_Report.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+
+
+            # =====================================================================
+            # CLINICAL DISCLAIMER
+            # =====================================================================
+
+            st.divider()
+
+            st.caption(
+                """
+                **Clinical Disclaimer:** This machine-learning system is
+                designed for early screening and research/analytical purposes.
+                It does not provide a definitive diagnosis, medical advice,
+                treatment recommendation or clinical prognosis. Results should
+                be interpreted by a qualified healthcare professional together
+                with appropriate clinical evaluation.
+                """
+            )
+
+
+    # =============================================================================
+    # END OF STEP 4
+    # =============================================================================
+    #
+    # STEP 4 COMPLETE:
+    #
+    # ✓ Separate Clinical Report tab
+    # ✓ Uses the existing SVM prediction
+    # ✓ Uses the existing SVM decision score
+    # ✓ Patient profile summary
+    # ✓ Vital-sign summary
+    # ✓ Derived-risk indicators
+    # ✓ Lifestyle summary
+    # ✓ Medical-history summary
+    # ✓ Screening interpretation
+    # ✓ Decision-score explanation
+    # ✓ Input-data viewer
+    # ✓ CSV report download
+    # ✓ Clinical disclaimer
+    #
+    # NEXT:
+    #
+    # STEP 5 — MODEL PERFORMANCE TAB
+    #
+    # =============================================================================
+    # =============================================================================
+    # STEP 5 : MODEL PERFORMANCE TAB
+    # =============================================================================
+    #
+    # Objective:
+    # Display the evaluation results of the final CKD Linear SVM model.
+    #
+    # This section is separate from:
+    #     - Patient screening
+    #     - Clinical report
+    #     - Model explainability
+    #     - CKD visualisations
+    #     - Insurance analytics
+    #
+    # =============================================================================
+
+
+    # =============================================================================
+    # SECTION 5.1 : MODEL PERFORMANCE TAB
+    # =============================================================================
+
+if main_early_screening:
+    with tab_statistics:
+
+        # =========================================================================
+        # PAGE HEADER
+        # =========================================================================
+
+        st.title(
+            "📊 Statistical Analysis"
+        )
+
+        st.write(
+            """
+            Evaluation of the final Linear Support Vector Machine (SVM)
+            developed for CKD early screening: model information, why the
+            Linear SVM was selected as the deployed model, performance metrics,
+            and explainability/feature-association plots.
+            """
+        )
+
+
+        # =========================================================================
+        # WHY LINEAR SVM?
+        # =========================================================================
+
+        st.divider()
+
+        st.subheader(
+            "❓ Why Linear SVM?"
+        )
+
+        st.write(
+            """
+            Several candidate models were trained and compared during the
+            early-screening workflow (see the model comparison table further
+            below). The **Linear SVM** was chosen as the final deployed model
+            because it offered the best balance of:
+
+            - **Strong, stable performance** — competitive accuracy, recall
+              and ROC-AUC against the CKD-risk target, without the heavier
+              overfitting risk seen in some tree-based alternatives on this
+              dataset.
+            - **Interpretability of the decision boundary** — a linear
+              decision function makes it possible to inspect feature weights
+              directly (see the Explainability plots below) rather than relying
+              purely on post-hoc approximations.
+            - **Efficiency and robustness at inference time** — a linear kernel
+              is fast to score, which matters for a real-time clinical
+              screening tool, and is less prone to erratic behaviour on
+              out-of-distribution patient inputs than more flexible non-linear
+              models.
+            - **Consistency across validation folds** — the Linear SVM's
+              metrics varied the least across cross-validation folds among the
+              models tested, indicating a more reliable and generalisable
+              classifier for early screening.
+            """
+        )
+
+
+        # =========================================================================
+        # MODEL INFORMATION
+        # =========================================================================
+
+        st.divider()
+
+        st.subheader(
+            "🤖 Final Model"
+        )
+
+
+        model_col1, model_col2, model_col3 = st.columns(3)
+
+
+        with model_col1:
+
+            st.metric(
+                "Algorithm",
+                "Linear SVM"
+            )
+
+
+        with model_col2:
+
+            st.metric(
+                "Model Type",
+                "Binary Classification"
+            )
+
+
+        with model_col3:
+
+            st.metric(
+                "Decision Function",
+                "SVM Score"
+            )
+
+
+        # =========================================================================
+        # PERFORMANCE DATA
+        # =========================================================================
+        #
+        # IMPORTANT:
+        # The following section expects the validation objects from your
+        # modelling workflow:
+        #
+        #     y_valid
+        #     y_pred_svm
+        #     y_score
+        #
+        # If your variable names are different, use the exact names from
+        # your modelling notebook.
+        #
+        # =========================================================================
+
+
+        if not evaluation_loaded:
+
+            st.info(
+                "Live validation data is not available; displaying the exact "
+                "validation results recorded in the CKD modelling notebook."
+            )
+
+
+        # Shared SVM metrics are already prepared above.
+
+
+            # =====================================================================
+        # USE SHARED SVM EVALUATION RESULTS
+        # =====================================================================
+
+        accuracy = svm_accuracy
+        precision = svm_precision
+        recall = svm_recall
+        f1 = svm_f1
+        roc_auc = svm_roc_auc
+
+
+        # =====================================================================
+        # KPI CARDS
+        # =====================================================================
+
+        st.divider()
+
+        st.subheader(
+            "📌 Performance Summary"
+        )
+
+
+        metric_col1, \
+        metric_col2, \
+        metric_col3, \
+        metric_col4, \
+        metric_col5 = st.columns(5)
+
+
+        with metric_col1:
+
+            st.metric(
+                "Accuracy",
+                f"{accuracy:.3f}"
+            )
+
+
+        with metric_col2:
+
+            st.metric(
+                "Precision",
+                f"{precision:.3f}"
+            )
+
+
+        with metric_col3:
+
+            st.metric(
+                "Recall",
+                f"{recall:.3f}"
+            )
+
+
+        with metric_col4:
+
+            st.metric(
+                "F1 Score",
+                f"{f1:.3f}"
+            )
+
+
+        with metric_col5:
+
+            st.metric(
+                "ROC AUC",
+                f"{roc_auc:.3f}"
+            )
+
+
+        # =====================================================================
+        # METRIC INTERPRETATION
+        # =====================================================================
+
+        st.divider()
+
+        st.subheader(
+            "📖 Metric Interpretation"
+        )
+
+
+        interpretation_col1, \
+        interpretation_col2 = st.columns(2)
+
+
+        with interpretation_col1:
+
+            st.markdown(
+                """
+                **Accuracy**
+
+                Proportion of validation observations classified
+                correctly by the SVM.
+                """
+            )
+
+
+            st.markdown(
+                """
+                **Precision**
+
+                Among observations predicted as CKD risk,
+                proportion that were actually CKD risk.
+                """
+            )
+
+
+            st.markdown(
+                """
+                **Recall**
+
+                Among observations belonging to the CKD-risk class,
+                proportion correctly identified by the model.
+                """
+            )
+
+
+        with interpretation_col2:
+
+            st.markdown(
+                """
+                **F1 Score**
+
+                Harmonic mean of precision and recall.
+                """
+            )
+
+
+            st.markdown(
+                """
+                **ROC AUC**
+
+                Measures the model's ability to distinguish the
+                two classes across classification thresholds.
+                """
+            )
+
+
+            st.markdown(
+                """
+                **SVM Decision Score**
+
+                Represents the position of an observation relative
+                to the SVM classification boundary.
+                """
+            )
+
+
+        # =====================================================================
+        # CONFUSION MATRIX
+        # =====================================================================
+
+        st.divider()
+
+        st.subheader(
+            "🔲 Confusion Matrix"
+        )
+
+
+        # Use the exact Linear SVM confusion matrix from the validated project results.
+        # The live evaluation helper may use a different available CSV/split, so
+        # recomputing it here can produce a matrix inconsistent with the reported metrics.
+        cm = NOTEBOOK_CONFUSION_MATRICES["Linear SVM"].copy()
+
+        fig_cm, ax_cm = plt.subplots(
+            figsize=(7, 5)
+        )
+
+
+        image = ax_cm.imshow(
+            cm
+        )
+
+
+        ax_cm.set_title(
+            "Linear SVM Confusion Matrix"
+        )
+
+
+        ax_cm.set_xlabel(
+            "Predicted Class"
+        )
+
+
+        ax_cm.set_ylabel(
+            "Actual Class"
+        )
+
+
+        ax_cm.set_xticks(
+            [0, 1]
+        )
+
+
+        ax_cm.set_yticks(
+            [0, 1]
+        )
+
+
+        ax_cm.set_xticklabels(
+            [
+                "No CKD Risk",
+                "CKD Risk"
+            ]
+        )
+
+
+        ax_cm.set_yticklabels(
+            [
+                "No CKD Risk",
+                "CKD Risk"
+            ]
+        )
+
+
+        for i in range(
+            cm.shape[0]
+        ):
+
+            for j in range(
+                cm.shape[1]
+            ):
+
+                ax_cm.text(
+                    j,
+                    i,
+                    cm[i, j],
+                    ha="center",
+                    va="center"
+                )
+
+
+        fig_cm.colorbar(
+            image,
+            ax=ax_cm
+        )
+
+
+        plt.tight_layout()
+
+
+        st.pyplot(
+            fig_cm
+        )
+
+
+        plt.close(
+            fig_cm
+        )
+
+
+        # =====================================================================
+        # CONFUSION MATRIX INTERPRETATION
+        # =====================================================================
+
+        tn, fp, fn, tp = cm.ravel()
+
+
+        cm_col1, \
+        cm_col2, \
+        cm_col3, \
+        cm_col4 = st.columns(4)
+
+
+        with cm_col1:
+
+            st.metric(
+                "True Negatives",
+                f"{tn:,}"
+            )
+
+
+        with cm_col2:
+
+            st.metric(
+                "False Positives",
+                f"{fp:,}"
+            )
+
+
+        with cm_col3:
+
+            st.metric(
+                "False Negatives",
+                f"{fn:,}"
+            )
+
+
+        with cm_col4:
+
+            st.metric(
+                "True Positives",
+                f"{tp:,}"
+            )
+
+
+        # =====================================================================
+        # MODEL PERFORMANCE SUMMARY
+        # =====================================================================
+
+        st.divider()
+
+        st.subheader(
+            "📋 Model Evaluation Summary"
+        )
+
+
+        performance_summary = pd.DataFrame(
+            {
+                "Metric": [
+                    "Accuracy",
+                    "Precision",
+                    "Recall",
+                    "F1 Score",
+                    "ROC AUC"
+                ],
+                "Score": [
+                    accuracy,
+                    precision,
+                    recall,
+                    f1,
+                    roc_auc
+                ]
+            }
+        )
+
+
+        performance_summary[
+            "Score"
+        ] = performance_summary[
+            "Score"
+        ].round(
+            4
+        )
+
+
+        st.dataframe(
+            performance_summary,
+            use_container_width=True,
+            hide_index=True
+        )
+
+
+        # =====================================================================
+        # PERFORMANCE DISCLAIMER
         # =====================================================================
 
         st.divider()
 
         st.caption(
             """
-            **Clinical Disclaimer:** This machine-learning system is
-            designed for early screening and research/analytical purposes.
-            It does not provide a definitive diagnosis, medical advice,
-            treatment recommendation or clinical prognosis. Results should
-            be interpreted by a qualified healthcare professional together
-            with appropriate clinical evaluation.
+            Model performance metrics describe performance on the validation
+            dataset used during model evaluation. They should not be
+            interpreted as guaranteed performance for every future patient.
             """
         )
 
 
-# =============================================================================
-# END OF STEP 4
-# =============================================================================
-#
-# STEP 4 COMPLETE:
-#
-# ✓ Separate Clinical Report tab
-# ✓ Uses the existing SVM prediction
-# ✓ Uses the existing SVM decision score
-# ✓ Patient profile summary
-# ✓ Vital-sign summary
-# ✓ Derived-risk indicators
-# ✓ Lifestyle summary
-# ✓ Medical-history summary
-# ✓ Screening interpretation
-# ✓ Decision-score explanation
-# ✓ Input-data viewer
-# ✓ CSV report download
-# ✓ Clinical disclaimer
-#
-# NEXT:
-#
-# STEP 5 — MODEL PERFORMANCE TAB
-#
-# =============================================================================
-# =============================================================================
-# STEP 5 : MODEL PERFORMANCE TAB
-# =============================================================================
-#
-# Objective:
-# Display the evaluation results of the final CKD Linear SVM model.
-#
-# This section is separate from:
-#     - Patient screening
-#     - Clinical report
-#     - Model explainability
-#     - CKD visualisations
-#     - Insurance analytics
-#
-# =============================================================================
-
-
-# =============================================================================
-# SECTION 5.1 : MODEL PERFORMANCE TAB
-# =============================================================================
-
-with tab_statistics:
-
-    # =========================================================================
-    # PAGE HEADER
-    # =========================================================================
-
-    st.title(
-        "📊 Statistical Analysis"
-    )
-
-    st.write(
-        """
-        Evaluation of the final Linear Support Vector Machine (SVM)
-        developed for CKD early screening: model information, why the
-        Linear SVM was selected as the deployed model, performance metrics,
-        and explainability/feature-association plots.
-        """
-    )
-
-
-    # =========================================================================
-    # WHY LINEAR SVM?
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "❓ Why Linear SVM?"
-    )
-
-    st.write(
-        """
-        Several candidate models were trained and compared during the
-        early-screening workflow (see the model comparison table further
-        below). The **Linear SVM** was chosen as the final deployed model
-        because it offered the best balance of:
-
-        - **Strong, stable performance** — competitive accuracy, recall
-          and ROC-AUC against the CKD-risk target, without the heavier
-          overfitting risk seen in some tree-based alternatives on this
-          dataset.
-        - **Interpretability of the decision boundary** — a linear
-          decision function makes it possible to inspect feature weights
-          directly (see the Explainability plots below) rather than relying
-          purely on post-hoc approximations.
-        - **Efficiency and robustness at inference time** — a linear kernel
-          is fast to score, which matters for a real-time clinical
-          screening tool, and is less prone to erratic behaviour on
-          out-of-distribution patient inputs than more flexible non-linear
-          models.
-        - **Consistency across validation folds** — the Linear SVM's
-          metrics varied the least across cross-validation folds among the
-          models tested, indicating a more reliable and generalisable
-          classifier for early screening.
-        """
-    )
-
-
-    # =========================================================================
-    # MODEL INFORMATION
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "🤖 Final Model"
-    )
-
-
-    model_col1, model_col2, model_col3 = st.columns(3)
-
-
-    with model_col1:
-
-        st.metric(
-            "Algorithm",
-            "Linear SVM"
-        )
-
-
-    with model_col2:
-
-        st.metric(
-            "Model Type",
-            "Binary Classification"
-        )
-
-
-    with model_col3:
-
-        st.metric(
-            "Decision Function",
-            "SVM Score"
-        )
-
-
-    # =========================================================================
-    # PERFORMANCE DATA
-    # =========================================================================
+    # =============================================================================
+    # END OF STEP 5
+    # =============================================================================
     #
-    # IMPORTANT:
-    # The following section expects the validation objects from your
-    # modelling workflow:
+    # STEP 5 COMPLETE:
     #
-    #     y_valid
-    #     y_pred_svm
-    #     y_score
+    # ✓ Final SVM model information
+    # ✓ Accuracy
+    # ✓ Precision
+    # ✓ Recall
+    # ✓ F1 Score
+    # ✓ ROC AUC
+    # ✓ Confusion Matrix
+    # ✓ TN / FP / FN / TP
+    # ✓ Metric interpretation
+    # ✓ Performance summary table
+    # ✓ Proper section alignment
     #
-    # If your variable names are different, use the exact names from
-    # your modelling notebook.
+    # NEXT:
     #
-    # =========================================================================
-
-
-    if not evaluation_loaded:
-
-        st.info(
-            "Live validation data is not available; displaying the exact "
-            "validation results recorded in the CKD modelling notebook."
-        )
-
-
-    # Shared SVM metrics are already prepared above.
-
-
-        # =====================================================================
-    # USE SHARED SVM EVALUATION RESULTS
-    # =====================================================================
-
-    accuracy = svm_accuracy
-    precision = svm_precision
-    recall = svm_recall
-    f1 = svm_f1
-    roc_auc = svm_roc_auc
-
-
-    # =====================================================================
-    # KPI CARDS
-    # =====================================================================
-
-    st.divider()
-
-    st.subheader(
-        "📌 Performance Summary"
-    )
-
-
-    metric_col1, \
-    metric_col2, \
-    metric_col3, \
-    metric_col4, \
-    metric_col5 = st.columns(5)
-
-
-    with metric_col1:
-
-        st.metric(
-            "Accuracy",
-            f"{accuracy:.3f}"
-        )
-
-
-    with metric_col2:
-
-        st.metric(
-            "Precision",
-            f"{precision:.3f}"
-        )
-
-
-    with metric_col3:
-
-        st.metric(
-            "Recall",
-            f"{recall:.3f}"
-        )
-
-
-    with metric_col4:
-
-        st.metric(
-            "F1 Score",
-            f"{f1:.3f}"
-        )
-
-
-    with metric_col5:
-
-        st.metric(
-            "ROC AUC",
-            f"{roc_auc:.3f}"
-        )
-
-
-    # =====================================================================
-    # METRIC INTERPRETATION
-    # =====================================================================
-
-    st.divider()
-
-    st.subheader(
-        "📖 Metric Interpretation"
-    )
-
-
-    interpretation_col1, \
-    interpretation_col2 = st.columns(2)
-
-
-    with interpretation_col1:
-
-        st.markdown(
-            """
-            **Accuracy**
-
-            Proportion of validation observations classified
-            correctly by the SVM.
-            """
-        )
-
-
-        st.markdown(
-            """
-            **Precision**
-
-            Among observations predicted as CKD risk,
-            proportion that were actually CKD risk.
-            """
-        )
-
-
-        st.markdown(
-            """
-            **Recall**
-
-            Among observations belonging to the CKD-risk class,
-            proportion correctly identified by the model.
-            """
-        )
-
-
-    with interpretation_col2:
-
-        st.markdown(
-            """
-            **F1 Score**
-
-            Harmonic mean of precision and recall.
-            """
-        )
-
-
-        st.markdown(
-            """
-            **ROC AUC**
-
-            Measures the model's ability to distinguish the
-            two classes across classification thresholds.
-            """
-        )
-
-
-        st.markdown(
-            """
-            **SVM Decision Score**
-
-            Represents the position of an observation relative
-            to the SVM classification boundary.
-            """
-        )
-
-
-    # =====================================================================
-    # CONFUSION MATRIX
-    # =====================================================================
-
-    st.divider()
-
-    st.subheader(
-        "🔲 Confusion Matrix"
-    )
-
-
-    # Use the exact Linear SVM confusion matrix from the validated project results.
-    # The live evaluation helper may use a different available CSV/split, so
-    # recomputing it here can produce a matrix inconsistent with the reported metrics.
-    cm = NOTEBOOK_CONFUSION_MATRICES["Linear SVM"].copy()
-
-    fig_cm, ax_cm = plt.subplots(
-        figsize=(7, 5)
-    )
-
-
-    image = ax_cm.imshow(
-        cm
-    )
-
-
-    ax_cm.set_title(
-        "Linear SVM Confusion Matrix"
-    )
-
-
-    ax_cm.set_xlabel(
-        "Predicted Class"
-    )
-
-
-    ax_cm.set_ylabel(
-        "Actual Class"
-    )
-
-
-    ax_cm.set_xticks(
-        [0, 1]
-    )
-
-
-    ax_cm.set_yticks(
-        [0, 1]
-    )
-
-
-    ax_cm.set_xticklabels(
-        [
-            "No CKD Risk",
-            "CKD Risk"
-        ]
-    )
-
-
-    ax_cm.set_yticklabels(
-        [
-            "No CKD Risk",
-            "CKD Risk"
-        ]
-    )
-
-
-    for i in range(
-        cm.shape[0]
-    ):
-
-        for j in range(
-            cm.shape[1]
-        ):
-
-            ax_cm.text(
-                j,
-                i,
-                cm[i, j],
-                ha="center",
-                va="center"
-            )
-
-
-    fig_cm.colorbar(
-        image,
-        ax=ax_cm
-    )
-
-
-    plt.tight_layout()
-
-
-    st.pyplot(
-        fig_cm
-    )
-
-
-    plt.close(
-        fig_cm
-    )
-
-
-    # =====================================================================
-    # CONFUSION MATRIX INTERPRETATION
-    # =====================================================================
-
-    tn, fp, fn, tp = cm.ravel()
-
-
-    cm_col1, \
-    cm_col2, \
-    cm_col3, \
-    cm_col4 = st.columns(4)
-
-
-    with cm_col1:
-
-        st.metric(
-            "True Negatives",
-            f"{tn:,}"
-        )
-
-
-    with cm_col2:
-
-        st.metric(
-            "False Positives",
-            f"{fp:,}"
-        )
-
-
-    with cm_col3:
-
-        st.metric(
-            "False Negatives",
-            f"{fn:,}"
-        )
-
-
-    with cm_col4:
-
-        st.metric(
-            "True Positives",
-            f"{tp:,}"
-        )
-
-
-    # =====================================================================
-    # MODEL PERFORMANCE SUMMARY
-    # =====================================================================
-
-    st.divider()
-
-    st.subheader(
-        "📋 Model Evaluation Summary"
-    )
-
-
-    performance_summary = pd.DataFrame(
-        {
-            "Metric": [
-                "Accuracy",
-                "Precision",
-                "Recall",
-                "F1 Score",
-                "ROC AUC"
-            ],
-            "Score": [
-                accuracy,
-                precision,
-                recall,
-                f1,
-                roc_auc
-            ]
-        }
-    )
-
-
-    performance_summary[
-        "Score"
-    ] = performance_summary[
-        "Score"
-    ].round(
-        4
-    )
-
-
-    st.dataframe(
-        performance_summary,
-        use_container_width=True,
-        hide_index=True
-    )
-
-
-    # =====================================================================
-    # PERFORMANCE DISCLAIMER
-    # =====================================================================
-
-    st.divider()
-
-    st.caption(
-        """
-        Model performance metrics describe performance on the validation
-        dataset used during model evaluation. They should not be
-        interpreted as guaranteed performance for every future patient.
-        """
-    )
-
-
-# =============================================================================
-# END OF STEP 5
-# =============================================================================
-#
-# STEP 5 COMPLETE:
-#
-# ✓ Final SVM model information
-# ✓ Accuracy
-# ✓ Precision
-# ✓ Recall
-# ✓ F1 Score
-# ✓ ROC AUC
-# ✓ Confusion Matrix
-# ✓ TN / FP / FN / TP
-# ✓ Metric interpretation
-# ✓ Performance summary table
-# ✓ Proper section alignment
-#
-# NEXT:
-#
-# STEP 6 — MODEL EXPLAINABILITY
-#
-# =============================================================================
-
-# =============================================================================
-# STEP 6 : MODEL EXPLAINABILITY / FEATURE IMPORTANCE
-# =============================================================================
-#
-# Objective:
-# Deploy the feature-importance analysis created in STEP 26.
-#
-# Methods:
-#
-#     Random Forest      -> Tree-based Feature Importance
-#     Logistic Regression -> Absolute Coefficient Importance
-#     Linear SVM         -> Permutation Importance
-#
-# The deployed CKD screening model is the Linear SVM.
-# Therefore, SVM permutation importance is the primary explanation.
-#
-# =============================================================================
-
-
-# =============================================================================
-# SECTION 6.1 : EXPLAINABILITY TAB
-# =============================================================================
-
-with tab_statistics:
-
-    # =========================================================================
-    # PAGE HEADER
-    # =========================================================================
-
-    st.title(
-        "🔎 Model Explainability"
-    )
-
-    st.write(
-        """
-        Explore the most influential features identified during the
-        CKD model-development process.
-        """
-    )
-
-
-    st.info(
-        """
-        Feature importance describes how strongly variables contributed
-        to model predictions. It does not represent medical causation.
-        """
-    )
-
-
-    # =========================================================================
-    # SECTION 6.2 : EXPLAINABILITY METHODS
-    # =========================================================================
-
-    st.divider()
-
-    st.subheader(
-        "🧠 Explainability Methods"
-    )
-
-
-    method_col1, \
-    method_col2, \
-    method_col3 = st.columns(3)
-
-
-    with method_col1:
-
-        st.markdown(
-            """
-            ### 🌲 Random Forest
-
-            **Tree-based Feature Importance**
-
-            Measures the importance assigned to each feature by the
-            Random Forest model.
-            """
-        )
-
-
-    with method_col2:
-
-        st.markdown(
-            """
-            ### 📈 Logistic Regression
-
-            **Absolute Coefficient Importance**
-
-            Uses the absolute value of the Logistic Regression
-            coefficients to rank influential features.
-            """
-        )
-
-
-    with method_col3:
-
-        st.markdown(
-            """
-            ### ⚙️ Linear SVM
-
-            **Permutation Importance**
-
-            Measures the reduction in model performance when a feature
-            is randomly permuted.
-            """
-        )
-
-
-    # =========================================================================
-    # SECTION 6.3 : FEATURE NAMES
-    # =========================================================================
-
-    try:
-
-        feature_names = (
-            preprocessor
-            .get_feature_names_out()
-        )
-
-    except Exception:
-
-        feature_names = None
-
-
-    if feature_names is None:
-
-        st.info("The original notebook feature-importance plots are embedded below; live model objects are not required for these comparison visuals.")
-
-        st.subheader("🌲 Random Forest")
-        show_embedded_notebook_plot(NOTEBOOK_RF_FI_B64)
-
-        st.subheader("📈 Logistic Regression")
-        show_embedded_notebook_plot(NOTEBOOK_LOG_FI_B64)
-
-        st.subheader("⚙️ Linear SVM")
-        show_embedded_notebook_plot(NOTEBOOK_SVM_FI_B64)
-
-    else:
-
-        # =====================================================================
-        # MODEL SELECTION
-        # =====================================================================
-
-        st.divider()
-
-        st.subheader(
-            "📊 Select Explainability Analysis"
-        )
-
-
-        analysis_type = st.selectbox(
-            "Choose model",
-            [
-                "Linear SVM",
-                "Random Forest",
-                "Logistic Regression"
-            ]
-        )
-
-
-        # =====================================================================
-        # NUMBER OF FEATURES
-        # =====================================================================
-
-        top_n = st.slider(
-            "Number of features to display",
-            min_value=5,
-            max_value=20,
-            value=20,
-            step=5
-        )
-
-
-        # =====================================================================
-        # COMMON PLOT FUNCTION
-        # =====================================================================
-
-        def plot_feature_importance_streamlit(
-            dataframe,
-            importance_col,
-            feature_col,
-            title,
-            x_label
-        ):
-
-            fig, ax = plt.subplots(
-                figsize=(11, 8)
-            )
-
-
-            ax.barh(
-                dataframe[feature_col],
-                dataframe[importance_col],
-                edgecolor="black",
-                linewidth=0.6
-            )
-
-
-            ax.set_xlabel(
-                x_label,
-                fontsize=12
-            )
-
-
-            ax.set_ylabel(
-                "Features",
-                fontsize=12
-            )
-
-
-            ax.set_title(
-                title,
-                fontsize=15,
-                fontweight="bold"
-            )
-
-
-            ax.grid(
-                axis="x",
-                alpha=0.3
-            )
-
-
-            ax.tick_params(
-                axis="both",
-                labelsize=10
-            )
-
-
-            plt.tight_layout()
-
-
-            st.pyplot(
-                fig
-            )
-
-
-            plt.close(
-                fig
-            )
-
-
-        # =====================================================================
-        # RANDOM FOREST
-        # =====================================================================
-
-        if analysis_type == "Random Forest":
-
-            st.divider()
-
-            st.subheader(
-                "🌲 Random Forest Feature Importance"
-            )
-
-
-            if "rf_model" not in globals():
-
-                st.warning(
-                    """
-                    The Random Forest model is not currently loaded
-                    into the Streamlit application.
-                    """
-                )
-
-            else:
-
-                rf_importance = pd.DataFrame(
-                    {
-                        "Feature": feature_names,
-                        "Importance": (
-                            rf_model
-                            .feature_importances_
-                        )
-                    }
-                )
-
-
-                rf_importance = (
-                    rf_importance
-                    .sort_values(
-                        "Importance",
-                        ascending=False
-                    )
-                    .head(top_n)
-                    .sort_values(
-                        "Importance"
-                    )
-                )
-
-
-                plot_feature_importance_streamlit(
-
-                    rf_importance,
-
-                    "Importance",
-
-                    "Feature",
-
-                    f"Top {top_n} Feature Importance - Random Forest",
-
-                    "Importance Score"
-
-                )
-
-
-                st.dataframe(
-                    rf_importance
-                    .sort_values(
-                        "Importance",
-                        ascending=False
-                    )
-                    .reset_index(
-                        drop=True
-                    ),
-                    use_container_width=True,
-                    hide_index=True
-                )
-
-
-        # =====================================================================
-        # LOGISTIC REGRESSION
-        # =====================================================================
-
-        elif analysis_type == "Logistic Regression":
-
-            st.divider()
-
-            st.subheader(
-                "📈 Logistic Regression Feature Importance"
-            )
-
-
-            if "log_model" not in globals():
-
-                st.warning(
-                    """
-                    The Logistic Regression model is not currently loaded
-                    into the Streamlit application.
-                    """
-                )
-
-            else:
-
-                logistic_importance = pd.DataFrame(
-                    {
-                        "Feature": feature_names,
-                        "Coefficient": (
-                            log_model
-                            .coef_[0]
-                        )
-                    }
-                )
-
-
-                logistic_importance[
-                    "Absolute Importance"
-                ] = (
-                    logistic_importance[
-                        "Coefficient"
-                    ].abs()
-                )
-
-
-                logistic_importance = (
-                    logistic_importance
-                    .sort_values(
-                        "Absolute Importance",
-                        ascending=False
-                    )
-                    .head(top_n)
-                    .sort_values(
-                        "Absolute Importance"
-                    )
-                )
-
-
-                plot_feature_importance_streamlit(
-
-                    logistic_importance,
-
-                    "Absolute Importance",
-
-                    "Feature",
-
-                    f"Top {top_n} Feature Importance - Logistic Regression",
-
-                    "Absolute Coefficient"
-
-                )
-
-
-                st.dataframe(
-                    logistic_importance
-                    .sort_values(
-                        "Absolute Importance",
-                        ascending=False
-                    )
-                    .reset_index(
-                        drop=True
-                    ),
-                    use_container_width=True,
-                    hide_index=True
-                )
-
-
-                # -------------------------------------------------------------
-                # COEFFICIENT DIRECTION
-                # -------------------------------------------------------------
-
-                st.caption(
-                    """
-                    Positive coefficients indicate association with the
-                    positive model class, while negative coefficients
-                    indicate association with the negative model class.
-                    """
-                )
-
-
-        # =====================================================================
-        # LINEAR SVM
-        # =====================================================================
-
-        elif analysis_type == "Linear SVM":
-
-            st.divider()
-
-            st.subheader(
-                "⚙️ Linear SVM Permutation Importance"
-            )
-
-
-            st.write(
-                """
-                The deployed CKD screening model is the Linear SVM.
-                Its feature importance is evaluated using permutation
-                importance, matching the original feature-importance
-                analysis.
-                """
-            )
-
-
-            if (
-                "svm_model" not in globals()
-                or svm_model is None
-                or "x_valid_processed" not in globals()
-                or x_valid_processed is None
-                or "y_valid" not in globals()
-                or y_valid is None
-            ):
-
-                st.warning(
-                    """
-                    The validation data required for SVM permutation
-                    importance is not currently loaded.
-                    """
-                )
-
-            else:
-
-                # -------------------------------------------------------------
-                # CALCULATE PERMUTATION IMPORTANCE
-                # -------------------------------------------------------------
-
-                with st.spinner(
-                    "Calculating SVM permutation importance..."
-                ):
-
-                    svm_result = permutation_importance(
-
-                        svm_model,
-
-                        x_valid_processed,
-
-                        y_valid,
-
-                        scoring="accuracy",
-
-                        random_state=42,
-
-                        n_repeats=10
-
-                    )
-
-
-                # -------------------------------------------------------------
-                # CREATE IMPORTANCE DATAFRAME
-                # -------------------------------------------------------------
-
-                svm_importance = pd.DataFrame(
-                    {
-                        "Feature": feature_names,
-                        "Importance": (
-                            svm_result
-                            .importances_mean
-                        )
-                    }
-                )
-
-
-                # -------------------------------------------------------------
-                # TOP FEATURES
-                # -------------------------------------------------------------
-
-                svm_importance = (
-                    svm_importance
-                    .sort_values(
-                        "Importance",
-                        ascending=False
-                    )
-                    .head(top_n)
-                    .sort_values(
-                        "Importance"
-                    )
-                )
-
-
-                # -------------------------------------------------------------
-                # PLOT
-                # -------------------------------------------------------------
-
-                plot_feature_importance_streamlit(
-
-                    svm_importance,
-
-                    "Importance",
-
-                    "Feature",
-
-                    f"Top {top_n} Feature Importance - Support Vector Machine",
-
-                    "Permutation Importance"
-
-                )
-
-
-                # -------------------------------------------------------------
-                # TABLE
-                # -------------------------------------------------------------
-
-                st.dataframe(
-                    svm_importance
-                    .sort_values(
-                        "Importance",
-                        ascending=False
-                    )
-                    .reset_index(
-                        drop=True
-                    ),
-                    use_container_width=True,
-                    hide_index=True
-                )
-
-
-                # -------------------------------------------------------------
-                # INTERPRETATION
-                # -------------------------------------------------------------
-
-                st.success(
-                    """
-                    **Primary explainability method for the deployed model:**
-                    SVM Permutation Importance.
-                    """
-                )
-
-
-                st.caption(
-                    """
-                    A larger permutation-importance value indicates that
-                    randomly shuffling that feature caused a larger decrease
-                    in validation performance.
-                    """
-                )
-
-
-        # =====================================================================
-        if feature_names is not None:
-
-            # TOP FEATURE SUMMARY
-            # =====================================================================
-
-            st.divider()
-
-            st.subheader(
-                "🏆 Top Influential Features"
-            )
-
-
-            if analysis_type == "Linear SVM":
-
-                importance_table = svm_importance
-
-
-            elif analysis_type == "Random Forest":
-
-                importance_table = rf_importance
-
-
-            else:
-
-                importance_table = logistic_importance
-
-
-            top_feature = (
-                importance_table
-                .sort_values(
-                    importance_table.columns[1],
-                    ascending=False
-                )
-                .iloc[0]
-            )
-
-
-            summary_col1, summary_col2 = st.columns(2)
-
-
-            with summary_col1:
-
-                st.metric(
-                    "Most Influential Feature",
-                    str(
-                        top_feature["Feature"]
-                    )
-                )
-
-
-            with summary_col2:
-
-                importance_value = (
-                    top_feature.iloc[1]
-                )
-
-
-                st.metric(
-                    "Importance",
-                    f"{importance_value:.5f}"
-                )
-
-
-            # =====================================================================
-            # MODEL COMPARISON
-            # =====================================================================
-
-            st.divider()
-
-            st.subheader(
-                "🔬 Explainability Comparison"
-            )
-
-
-            comparison_data = pd.DataFrame(
-                {
-                    "Model": [
-                        "Random Forest",
-                        "Logistic Regression",
-                        "Linear SVM"
-                    ],
-                    "Explainability Method": [
-                        "Tree-based Feature Importance",
-                        "Absolute Coefficient Importance",
-                        "Permutation Importance"
-                    ]
-                }
-            )
-
-
-            st.dataframe(
-                comparison_data,
-                use_container_width=True,
-                hide_index=True
-            )
-
-
-            # =====================================================================
-        # IMPORTANT INTERPRETATION NOTE
-        # =====================================================================
-
-        st.divider()
-
-        st.warning(
-            """
-            **Interpretation note:** Feature importance indicates how a
-            machine-learning model uses variables for prediction. It does
-            not establish that a feature causes CKD. Clinical interpretation
-            should consider the patient's complete medical context.
-            """
-        )
-
-
-
-
-# =============================================================================
-# FINAL MODEL INTERPRETATION
-# =============================================================================
-
-with tab_statistics:
-
-    st.divider()
-    st.subheader("🏆 Overall Interpretation & Best Model")
-
-    st.dataframe(
-        NOTEBOOK_MODEL_RESULTS.sort_values("F1 Score", ascending=False).reset_index(drop=True),
-        use_container_width=True,
-        hide_index=True
-    )
-
-    st.markdown("""
-    **Interpretation:** Random Forest records the highest accuracy, precision and F1 score in the completed validation comparison. Logistic Regression records the highest recall. The Linear SVM has the highest recall among the models while remaining close in ROC-AUC, and it is the model selected for deployment because the screening workflow prioritises identifying CKD-risk cases and reducing missed high-risk observations.
-
-    **Best deployed model: Linear SVM.** The other two models are retained as comparative benchmarks and for interpretability. Feature importance is an explanation of model behaviour, not proof of clinical causation.
-    """)
-
-# =============================================================================
-# END OF STEP 6
-# =============================================================================
-#
-# STEP 6 COMPLETE:
-#
-# ✓ Random Forest feature importance
-# ✓ Logistic Regression absolute coefficients
-# ✓ Linear SVM permutation importance
-# ✓ Top 5 / 10 / 15 / 20 feature selection
-# ✓ Horizontal feature-importance plots
-# ✓ Feature-importance tables
-# ✓ Top-feature summary
-# ✓ Explainability-method comparison
-# ✓ Interpretation guidance
-#
-# NEXT:
-#
-# STEP 7 — CKD ANALYTICS / DATA VISUALISATIONS
-#
-# =============================================================================
-# =============================================================================
-# STEP 7 : CKD VISUALISATIONS
-# =============================================================================
-#
-# Objective:
-# Deploy the visualisations created during the CKD early-screening analysis.
-#
-# This tab is dedicated ONLY to CKD plots and visualisations.
-#
-# =============================================================================
-
-
-# =============================================================================
-# SECTION 7.1 : CKD VISUALISATIONS TAB
-# =============================================================================
-
-
-        # =============================================================================
-# =============================================================================
-# STEP 7 : CKD VISUALISATIONS
-# =============================================================================
-
-with tab_ckd_visuals:
-
-    st.title("📈 CKD Visualisations")
-    st.write("Visual comparison of the models and CKD risk patterns. Insurance analysis is intentionally kept in the next tab.")
-
-    visualisation_section = st.selectbox(
-        "Select CKD visualisation",
-        ["Model Comparison", "CKD Risk Analysis"],
-        key="ckd_visualisation_section"
-    )
-
-    if visualisation_section == "Model Comparison":
-
-        st.header("🤖 Three-Model Visual Comparison")
-        st.caption("Comparison from the completed CKD modelling workflow: Logistic Regression, Random Forest and Linear SVM.")
-        st.dataframe(NOTEBOOK_MODEL_RESULTS.round(5), use_container_width=True, hide_index=True)
-
-        metric_cols = ["Accuracy", "Precision", "Recall", "F1 Score", "ROC AUC"]
-        fig_metrics = go.Figure()
-        for i, model in enumerate(NOTEBOOK_MODEL_RESULTS["Model"]):
-            vals = NOTEBOOK_MODEL_RESULTS.loc[NOTEBOOK_MODEL_RESULTS["Model"] == model, metric_cols].iloc[0].values
-            fig_metrics.add_trace(go.Bar(
-                x=metric_cols,
-                y=vals,
-                name=model,
-                hovertemplate="Model: " + model + "<br>Metric: %{x}<br>Score: %{y:.4f}<extra></extra>"
-            ))
-        fig_metrics.update_layout(
-            title="Model Performance Comparison",
-            yaxis_title="Score",
-            yaxis=dict(range=[0, 1]),
-            barmode='group',
-            height=450
-        )
-        st.plotly_chart(fig_metrics, use_container_width=True)
-
-        st.subheader("🔲 Confusion Matrix Comparison")
-        cm_fig = make_subplots(rows=1, cols=3, subplot_titles=list(NOTEBOOK_CONFUSION_MATRICES.keys()))
-        for i, (model, cmv) in enumerate(NOTEBOOK_CONFUSION_MATRICES.items()):
-            heatmap = go.Heatmap(
-                z=cmv,
-                x=["No CKD", "CKD"],
-                y=["No CKD", "CKD"],
-                text=cmv,
-                texttemplate="%{text}",
-                colorscale="Blues",
-                showscale=False
-            )
-            cm_fig.add_trace(heatmap, row=1, col=i+1)
-            cm_fig.update_xaxes(title_text="Predicted", row=1, col=i+1)
-            cm_fig.update_yaxes(title_text="Actual", autorange="reversed", row=1, col=i+1)
-        cm_fig.update_layout(height=400)
-        st.plotly_chart(cm_fig, use_container_width=True)
-
-        st.subheader("📈 ROC / Precision–Recall Comparison")
-        show_embedded_notebook_plot(NOTEBOOK_ROC_B64)
-        show_embedded_notebook_plot(NOTEBOOK_PR_B64)
-
-        st.subheader("🏆 Model Interpretation")
-        st.markdown("""
-        **Random Forest** records the highest accuracy, precision and F1 score in the completed validation comparison.
-
-        **Logistic Regression** records the highest recall among the three benchmark models.
-
-        **Linear SVM** records the highest recall among the deployed-comparison models and is the selected final screening model because the application prioritises identifying CKD-risk cases and reducing missed high-risk observations.
-        """)
-
-        # STEP 9 : CKD RISK VISUALISATIONS
-        # =============================================================================
-        #
-        # Objective:
-        # Deploy the CKD risk visualisations developed from the SVM predictions.
-        #
-        # Original project variables:
-        #
-        #     Predicted_CKD
-        #     Risk_Level
-        #     Health_Insurance
-        #     Risk_Group
-        #     Age
-        #     BMI
-        #     Lifestyle_Risk
-        #     Metabolic_Risk
-        #     CV_Risk
-        #
-        # =============================================================================
-
-
-    elif visualisation_section == "CKD Risk Analysis":
+    # STEP 6 — MODEL EXPLAINABILITY
+    #
+    # =============================================================================
+
+    # =============================================================================
+    # STEP 6 : MODEL EXPLAINABILITY / FEATURE IMPORTANCE
+    # =============================================================================
+    #
+    # Objective:
+    # Deploy the feature-importance analysis created in STEP 26.
+    #
+    # Methods:
+    #
+    #     Random Forest      -> Tree-based Feature Importance
+    #     Logistic Regression -> Absolute Coefficient Importance
+    #     Linear SVM         -> Permutation Importance
+    #
+    # The deployed CKD screening model is the Linear SVM.
+    # Therefore, SVM permutation importance is the primary explanation.
+    #
+    # =============================================================================
+
+
+    # =============================================================================
+    # SECTION 6.1 : EXPLAINABILITY TAB
+    # =============================================================================
+
+if main_early_screening:
+    with tab_statistics:
 
         # =========================================================================
-        # SECTION 9.1 : HEADER
+        # PAGE HEADER
         # =========================================================================
 
-        st.header(
-            "⚠️ CKD Risk Visualisations"
+        st.title(
+            "🔎 Model Explainability"
         )
 
         st.write(
             """
-            Visual exploration of predicted CKD risk across the validation
-            population and selected risk factors.
+            Explore the most influential features identified during the
+            CKD model-development process.
+            """
+        )
+
+
+        st.info(
+            """
+            Feature importance describes how strongly variables contributed
+            to model predictions. It does not represent medical causation.
             """
         )
 
 
         # =========================================================================
-        # SECTION 9.2 : CREATE RISK ANALYSIS DATA
+        # SECTION 6.2 : EXPLAINABILITY METHODS
+        # =========================================================================
+
+        st.divider()
+
+        st.subheader(
+            "🧠 Explainability Methods"
+        )
+
+
+        method_col1, \
+        method_col2, \
+        method_col3 = st.columns(3)
+
+
+        with method_col1:
+
+            st.markdown(
+                """
+                ### 🌲 Random Forest
+
+                **Tree-based Feature Importance**
+
+                Measures the importance assigned to each feature by the
+                Random Forest model.
+                """
+            )
+
+
+        with method_col2:
+
+            st.markdown(
+                """
+                ### 📈 Logistic Regression
+
+                **Absolute Coefficient Importance**
+
+                Uses the absolute value of the Logistic Regression
+                coefficients to rank influential features.
+                """
+            )
+
+
+        with method_col3:
+
+            st.markdown(
+                """
+                ### ⚙️ Linear SVM
+
+                **Permutation Importance**
+
+                Measures the reduction in model performance when a feature
+                is randomly permuted.
+                """
+            )
+
+
+        # =========================================================================
+        # SECTION 6.3 : FEATURE NAMES
+        # =========================================================================
+
+        try:
+
+            feature_names = (
+                preprocessor
+                .get_feature_names_out()
+            )
+
+        except Exception:
+
+            feature_names = None
+
+
+        if feature_names is None:
+
+            st.info("The original notebook feature-importance plots are embedded below; live model objects are not required for these comparison visuals.")
+
+            st.subheader("🌲 Random Forest")
+            show_embedded_notebook_plot(NOTEBOOK_RF_FI_B64)
+
+            st.subheader("📈 Logistic Regression")
+            show_embedded_notebook_plot(NOTEBOOK_LOG_FI_B64)
+
+            st.subheader("⚙️ Linear SVM")
+            show_embedded_notebook_plot(NOTEBOOK_SVM_FI_B64)
+
+        else:
+
+            # =====================================================================
+            # MODEL SELECTION
+            # =====================================================================
+
+            st.divider()
+
+            st.subheader(
+                "📊 Select Explainability Analysis"
+            )
+
+
+            analysis_type = st.selectbox(
+                "Choose model",
+                [
+                    "Linear SVM",
+                    "Random Forest",
+                    "Logistic Regression"
+                ]
+            )
+
+
+            # =====================================================================
+            # NUMBER OF FEATURES
+            # =====================================================================
+
+            top_n = st.slider(
+                "Number of features to display",
+                min_value=5,
+                max_value=20,
+                value=20,
+                step=5
+            )
+
+
+            # =====================================================================
+            # COMMON PLOT FUNCTION
+            # =====================================================================
+
+            def plot_feature_importance_streamlit(
+                dataframe,
+                importance_col,
+                feature_col,
+                title,
+                x_label
+            ):
+
+                fig, ax = plt.subplots(
+                    figsize=(11, 8)
+                )
+
+
+                ax.barh(
+                    dataframe[feature_col],
+                    dataframe[importance_col],
+                    edgecolor="black",
+                    linewidth=0.6
+                )
+
+
+                ax.set_xlabel(
+                    x_label,
+                    fontsize=12
+                )
+
+
+                ax.set_ylabel(
+                    "Features",
+                    fontsize=12
+                )
+
+
+                ax.set_title(
+                    title,
+                    fontsize=15,
+                    fontweight="bold"
+                )
+
+
+                ax.grid(
+                    axis="x",
+                    alpha=0.3
+                )
+
+
+                ax.tick_params(
+                    axis="both",
+                    labelsize=10
+                )
+
+
+                plt.tight_layout()
+
+
+                st.pyplot(
+                    fig
+                )
+
+
+                plt.close(
+                    fig
+                )
+
+
+            # =====================================================================
+            # RANDOM FOREST
+            # =====================================================================
+
+            if analysis_type == "Random Forest":
+
+                st.divider()
+
+                st.subheader(
+                    "🌲 Random Forest Feature Importance"
+                )
+
+
+                if "rf_model" not in globals():
+
+                    st.warning(
+                        """
+                        The Random Forest model is not currently loaded
+                        into the Streamlit application.
+                        """
+                    )
+
+                else:
+
+                    rf_importance = pd.DataFrame(
+                        {
+                            "Feature": feature_names,
+                            "Importance": (
+                                rf_model
+                                .feature_importances_
+                            )
+                        }
+                    )
+
+
+                    rf_importance = (
+                        rf_importance
+                        .sort_values(
+                            "Importance",
+                            ascending=False
+                        )
+                        .head(top_n)
+                        .sort_values(
+                            "Importance"
+                        )
+                    )
+
+
+                    plot_feature_importance_streamlit(
+
+                        rf_importance,
+
+                        "Importance",
+
+                        "Feature",
+
+                        f"Top {top_n} Feature Importance - Random Forest",
+
+                        "Importance Score"
+
+                    )
+
+
+                    st.dataframe(
+                        rf_importance
+                        .sort_values(
+                            "Importance",
+                            ascending=False
+                        )
+                        .reset_index(
+                            drop=True
+                        ),
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+
+            # =====================================================================
+            # LOGISTIC REGRESSION
+            # =====================================================================
+
+            elif analysis_type == "Logistic Regression":
+
+                st.divider()
+
+                st.subheader(
+                    "📈 Logistic Regression Feature Importance"
+                )
+
+
+                if "log_model" not in globals():
+
+                    st.warning(
+                        """
+                        The Logistic Regression model is not currently loaded
+                        into the Streamlit application.
+                        """
+                    )
+
+                else:
+
+                    logistic_importance = pd.DataFrame(
+                        {
+                            "Feature": feature_names,
+                            "Coefficient": (
+                                log_model
+                                .coef_[0]
+                            )
+                        }
+                    )
+
+
+                    logistic_importance[
+                        "Absolute Importance"
+                    ] = (
+                        logistic_importance[
+                            "Coefficient"
+                        ].abs()
+                    )
+
+
+                    logistic_importance = (
+                        logistic_importance
+                        .sort_values(
+                            "Absolute Importance",
+                            ascending=False
+                        )
+                        .head(top_n)
+                        .sort_values(
+                            "Absolute Importance"
+                        )
+                    )
+
+
+                    plot_feature_importance_streamlit(
+
+                        logistic_importance,
+
+                        "Absolute Importance",
+
+                        "Feature",
+
+                        f"Top {top_n} Feature Importance - Logistic Regression",
+
+                        "Absolute Coefficient"
+
+                    )
+
+
+                    st.dataframe(
+                        logistic_importance
+                        .sort_values(
+                            "Absolute Importance",
+                            ascending=False
+                        )
+                        .reset_index(
+                            drop=True
+                        ),
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+
+                    # -------------------------------------------------------------
+                    # COEFFICIENT DIRECTION
+                    # -------------------------------------------------------------
+
+                    st.caption(
+                        """
+                        Positive coefficients indicate association with the
+                        positive model class, while negative coefficients
+                        indicate association with the negative model class.
+                        """
+                    )
+
+
+            # =====================================================================
+            # LINEAR SVM
+            # =====================================================================
+
+            elif analysis_type == "Linear SVM":
+
+                st.divider()
+
+                st.subheader(
+                    "⚙️ Linear SVM Permutation Importance"
+                )
+
+
+                st.write(
+                    """
+                    The deployed CKD screening model is the Linear SVM.
+                    Its feature importance is evaluated using permutation
+                    importance, matching the original feature-importance
+                    analysis.
+                    """
+                )
+
+
+                if (
+                    "svm_model" not in globals()
+                    or svm_model is None
+                    or "x_valid_processed" not in globals()
+                    or x_valid_processed is None
+                    or "y_valid" not in globals()
+                    or y_valid is None
+                ):
+
+                    st.warning(
+                        """
+                        The validation data required for SVM permutation
+                        importance is not currently loaded.
+                        """
+                    )
+
+                else:
+
+                    # -------------------------------------------------------------
+                    # CALCULATE PERMUTATION IMPORTANCE
+                    # -------------------------------------------------------------
+
+                    with st.spinner(
+                        "Calculating SVM permutation importance..."
+                    ):
+
+                        svm_result = permutation_importance(
+
+                            svm_model,
+
+                            x_valid_processed,
+
+                            y_valid,
+
+                            scoring="accuracy",
+
+                            random_state=42,
+
+                            n_repeats=10
+
+                        )
+
+
+                    # -------------------------------------------------------------
+                    # CREATE IMPORTANCE DATAFRAME
+                    # -------------------------------------------------------------
+
+                    svm_importance = pd.DataFrame(
+                        {
+                            "Feature": feature_names,
+                            "Importance": (
+                                svm_result
+                                .importances_mean
+                            )
+                        }
+                    )
+
+
+                    # -------------------------------------------------------------
+                    # TOP FEATURES
+                    # -------------------------------------------------------------
+
+                    svm_importance = (
+                        svm_importance
+                        .sort_values(
+                            "Importance",
+                            ascending=False
+                        )
+                        .head(top_n)
+                        .sort_values(
+                            "Importance"
+                        )
+                    )
+
+
+                    # -------------------------------------------------------------
+                    # PLOT
+                    # -------------------------------------------------------------
+
+                    plot_feature_importance_streamlit(
+
+                        svm_importance,
+
+                        "Importance",
+
+                        "Feature",
+
+                        f"Top {top_n} Feature Importance - Support Vector Machine",
+
+                        "Permutation Importance"
+
+                    )
+
+
+                    # -------------------------------------------------------------
+                    # TABLE
+                    # -------------------------------------------------------------
+
+                    st.dataframe(
+                        svm_importance
+                        .sort_values(
+                            "Importance",
+                            ascending=False
+                        )
+                        .reset_index(
+                            drop=True
+                        ),
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+
+                    # -------------------------------------------------------------
+                    # INTERPRETATION
+                    # -------------------------------------------------------------
+
+                    st.success(
+                        """
+                        **Primary explainability method for the deployed model:**
+                        SVM Permutation Importance.
+                        """
+                    )
+
+
+                    st.caption(
+                        """
+                        A larger permutation-importance value indicates that
+                        randomly shuffling that feature caused a larger decrease
+                        in validation performance.
+                        """
+                    )
+
+
+            # =====================================================================
+            if feature_names is not None:
+
+                # TOP FEATURE SUMMARY
+                # =====================================================================
+
+                st.divider()
+
+                st.subheader(
+                    "🏆 Top Influential Features"
+                )
+
+
+                if analysis_type == "Linear SVM":
+
+                    importance_table = svm_importance
+
+
+                elif analysis_type == "Random Forest":
+
+                    importance_table = rf_importance
+
+
+                else:
+
+                    importance_table = logistic_importance
+
+
+                top_feature = (
+                    importance_table
+                    .sort_values(
+                        importance_table.columns[1],
+                        ascending=False
+                    )
+                    .iloc[0]
+                )
+
+
+                summary_col1, summary_col2 = st.columns(2)
+
+
+                with summary_col1:
+
+                    st.metric(
+                        "Most Influential Feature",
+                        str(
+                            top_feature["Feature"]
+                        )
+                    )
+
+
+                with summary_col2:
+
+                    importance_value = (
+                        top_feature.iloc[1]
+                    )
+
+
+                    st.metric(
+                        "Importance",
+                        f"{importance_value:.5f}"
+                    )
+
+
+                # =====================================================================
+                # MODEL COMPARISON
+                # =====================================================================
+
+                st.divider()
+
+                st.subheader(
+                    "🔬 Explainability Comparison"
+                )
+
+
+                comparison_data = pd.DataFrame(
+                    {
+                        "Model": [
+                            "Random Forest",
+                            "Logistic Regression",
+                            "Linear SVM"
+                        ],
+                        "Explainability Method": [
+                            "Tree-based Feature Importance",
+                            "Absolute Coefficient Importance",
+                            "Permutation Importance"
+                        ]
+                    }
+                )
+
+
+                st.dataframe(
+                    comparison_data,
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+
+                # =====================================================================
+            # IMPORTANT INTERPRETATION NOTE
+            # =====================================================================
+
+            st.divider()
+
+            st.warning(
+                """
+                **Interpretation note:** Feature importance indicates how a
+                machine-learning model uses variables for prediction. It does
+                not establish that a feature causes CKD. Clinical interpretation
+                should consider the patient's complete medical context.
+                """
+            )
+
+
+
+
+    # =============================================================================
+    # FINAL MODEL INTERPRETATION
+    # =============================================================================
+
+if main_early_screening:
+    with tab_statistics:
+
+        st.divider()
+        st.subheader("🏆 Overall Interpretation & Best Model")
+
+        st.dataframe(
+            NOTEBOOK_MODEL_RESULTS.sort_values("F1 Score", ascending=False).reset_index(drop=True),
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.markdown("""
+        **Interpretation:** Random Forest records the highest accuracy, precision and F1 score in the completed validation comparison. Logistic Regression records the highest recall. The Linear SVM has the highest recall among the models while remaining close in ROC-AUC, and it is the model selected for deployment because the screening workflow prioritises identifying CKD-risk cases and reducing missed high-risk observations.
+
+        **Best deployed model: Linear SVM.** The other two models are retained as comparative benchmarks and for interpretability. Feature importance is an explanation of model behaviour, not proof of clinical causation.
+        """)
+
+    # =============================================================================
+    # END OF STEP 6
+    # =============================================================================
+    #
+    # STEP 6 COMPLETE:
+    #
+    # ✓ Random Forest feature importance
+    # ✓ Logistic Regression absolute coefficients
+    # ✓ Linear SVM permutation importance
+    # ✓ Top 5 / 10 / 15 / 20 feature selection
+    # ✓ Horizontal feature-importance plots
+    # ✓ Feature-importance tables
+    # ✓ Top-feature summary
+    # ✓ Explainability-method comparison
+    # ✓ Interpretation guidance
+    #
+    # NEXT:
+    #
+    # STEP 7 — CKD ANALYTICS / DATA VISUALISATIONS
+    #
+    # =============================================================================
+    # =============================================================================
+    # STEP 7 : CKD VISUALISATIONS
+    # =============================================================================
+    #
+    # Objective:
+    # Deploy the visualisations created during the CKD early-screening analysis.
+    #
+    # This tab is dedicated ONLY to CKD plots and visualisations.
+    #
+    # =============================================================================
+
+
+    # =============================================================================
+    # SECTION 7.1 : CKD VISUALISATIONS TAB
+    # =============================================================================
+
+
+            # =============================================================================
+    # =============================================================================
+    # STEP 7 : CKD VISUALISATIONS
+    # =============================================================================
+
+if main_early_screening:
+    with tab_ckd_visuals:
+
+        st.title("📈 CKD Visualisations")
+        st.write("Visual comparison of the models and CKD risk patterns. Insurance analysis is intentionally kept in the next tab.")
+
+        visualisation_section = st.selectbox(
+            "Select CKD visualisation",
+            ["Model Comparison", "CKD Risk Analysis"],
+            key="ckd_visualisation_section"
+        )
+
+        if visualisation_section == "Model Comparison":
+
+            st.header("🤖 Three-Model Visual Comparison")
+            st.caption("Comparison from the completed CKD modelling workflow: Logistic Regression, Random Forest and Linear SVM.")
+            st.dataframe(NOTEBOOK_MODEL_RESULTS.round(5), use_container_width=True, hide_index=True)
+
+            metric_cols = ["Accuracy", "Precision", "Recall", "F1 Score", "ROC AUC"]
+            fig_metrics = go.Figure()
+            for i, model in enumerate(NOTEBOOK_MODEL_RESULTS["Model"]):
+                vals = NOTEBOOK_MODEL_RESULTS.loc[NOTEBOOK_MODEL_RESULTS["Model"] == model, metric_cols].iloc[0].values
+                fig_metrics.add_trace(go.Bar(
+                    x=metric_cols,
+                    y=vals,
+                    name=model,
+                    hovertemplate="Model: " + model + "<br>Metric: %{x}<br>Score: %{y:.4f}<extra></extra>"
+                ))
+            fig_metrics.update_layout(
+                title="Model Performance Comparison",
+                yaxis_title="Score",
+                yaxis=dict(range=[0, 1]),
+                barmode='group',
+                height=450
+            )
+            st.plotly_chart(fig_metrics, use_container_width=True)
+
+            st.subheader("🔲 Confusion Matrix Comparison")
+            cm_fig = make_subplots(rows=1, cols=3, subplot_titles=list(NOTEBOOK_CONFUSION_MATRICES.keys()))
+            for i, (model, cmv) in enumerate(NOTEBOOK_CONFUSION_MATRICES.items()):
+                heatmap = go.Heatmap(
+                    z=cmv,
+                    x=["No CKD", "CKD"],
+                    y=["No CKD", "CKD"],
+                    text=cmv,
+                    texttemplate="%{text}",
+                    colorscale="Blues",
+                    showscale=False
+                )
+                cm_fig.add_trace(heatmap, row=1, col=i+1)
+                cm_fig.update_xaxes(title_text="Predicted", row=1, col=i+1)
+                cm_fig.update_yaxes(title_text="Actual", autorange="reversed", row=1, col=i+1)
+            cm_fig.update_layout(height=400)
+            st.plotly_chart(cm_fig, use_container_width=True)
+
+            st.subheader("📈 ROC / Precision–Recall Comparison")
+            show_embedded_notebook_plot(NOTEBOOK_ROC_B64)
+            show_embedded_notebook_plot(NOTEBOOK_PR_B64)
+
+            st.subheader("🏆 Model Interpretation")
+            st.markdown("""
+            **Random Forest** records the highest accuracy, precision and F1 score in the completed validation comparison.
+
+            **Logistic Regression** records the highest recall among the three benchmark models.
+
+            **Linear SVM** records the highest recall among the deployed-comparison models and is the selected final screening model because the application prioritises identifying CKD-risk cases and reducing missed high-risk observations.
+            """)
+
+            # STEP 9 : CKD RISK VISUALISATIONS
+            # =============================================================================
+            #
+            # Objective:
+            # Deploy the CKD risk visualisations developed from the SVM predictions.
+            #
+            # Original project variables:
+            #
+            #     Predicted_CKD
+            #     Risk_Level
+            #     Health_Insurance
+            #     Risk_Group
+            #     Age
+            #     BMI
+            #     Lifestyle_Risk
+            #     Metabolic_Risk
+            #     CV_Risk
+            #
+            # =============================================================================
+
+
+        elif visualisation_section == "CKD Risk Analysis":
+
+            # =========================================================================
+            # SECTION 9.1 : HEADER
+            # =========================================================================
+
+            st.header(
+                "⚠️ CKD Risk Visualisations"
+            )
+
+            st.write(
+                """
+                Visual exploration of predicted CKD risk across the validation
+                population and selected risk factors.
+                """
+            )
+
+
+            # =========================================================================
+            # SECTION 9.2 : CREATE RISK ANALYSIS DATA
+            # =========================================================================
+
+            if (
+                "x_valid" not in globals()
+                or
+                "y_pred_svm" not in globals()
+            ):
+
+                st.warning(
+                    """
+                    The validation dataset and SVM predictions are not currently
+                    available for the CKD risk visualisations.
+                    """
+                )
+
+            else:
+
+                risk_analysis = x_valid.copy()
+
+
+                # ---------------------------------------------------------------------
+                # CREATE PREDICTED CKD
+                # ---------------------------------------------------------------------
+
+                risk_analysis["Predicted_CKD"] = (
+                    y_pred_svm
+                )
+
+
+                # ---------------------------------------------------------------------
+                # CONVERT PREDICTION TO PROJECT LABELS
+                # ---------------------------------------------------------------------
+
+                risk_analysis["Predicted_CKD"] = (
+                    risk_analysis["Predicted_CKD"]
+                    .replace(
+                        {
+                            0: "Low CKD Risk",
+                            1: "High CKD Risk"
+                        }
+                    )
+                )
+
+
+                # ---------------------------------------------------------------------
+                # CONVERT INSURANCE STATUS
+                # ---------------------------------------------------------------------
+
+                if "Health_Insurance" in risk_analysis.columns:
+
+                    risk_analysis["Health_Insurance"] = (
+                        risk_analysis["Health_Insurance"]
+                        .replace(
+                            {
+                                0: "No Insurance",
+                                1: "Has Insurance"
+                            }
+                        )
+                    )
+
+
+                # ---------------------------------------------------------------------
+                # CREATE RISK LEVEL
+                # ---------------------------------------------------------------------
+
+                risk_analysis["Risk_Level"] = (
+                    risk_analysis["Predicted_CKD"]
+                )
+
+
+                # =====================================================================
+                # SECTION 9.3 : RISK SUMMARY
+                # =====================================================================
+
+                st.divider()
+
+                st.subheader(
+                    "📊 CKD Risk Summary"
+                )
+
+
+                total_population = len(
+                    risk_analysis
+                )
+
+
+                high_risk_count = (
+                    risk_analysis["Predicted_CKD"]
+                    .eq("High CKD Risk")
+                    .sum()
+                )
+
+
+                low_risk_count = (
+                    risk_analysis["Predicted_CKD"]
+                    .eq("Low CKD Risk")
+                    .sum()
+                )
+
+
+                high_risk_percentage = (
+                    high_risk_count
+                    / total_population
+                    * 100
+                    if total_population > 0
+                    else 0
+                )
+
+
+                summary_col1, \
+                summary_col2, \
+                summary_col3 = st.columns(3)
+
+
+                with summary_col1:
+
+                    st.metric(
+                        "Validation Population",
+                        f"{total_population:,}"
+                    )
+
+
+                with summary_col2:
+
+                    st.metric(
+                        "High CKD Risk",
+                        f"{high_risk_count:,}"
+                    )
+
+
+                with summary_col3:
+
+                    st.metric(
+                        "High-Risk Percentage",
+                        f"{high_risk_percentage:.2f}%"
+                    )
+
+
+                # =====================================================================
+                # SECTION 9.4 : CKD RISK DISTRIBUTION
+                # =====================================================================
+
+                st.divider()
+
+                st.subheader(
+                    "🩺 Predicted CKD Risk Distribution"
+                )
+
+
+                risk_counts = (
+                    risk_analysis["Predicted_CKD"]
+                    .value_counts()
+                )
+
+
+                fig_risk = px.bar(
+                    x=risk_counts.index,
+                    y=risk_counts.values,
+                    color=risk_counts.index,
+                    color_discrete_map={
+                        "High CKD Risk": "#e74c3c",
+                        "Low CKD Risk": "#27ae60"
+                    },
+                    labels={"x": "Predicted CKD Risk", "y": "Number of Patients"},
+                    title="Predicted CKD Risk Distribution"
+                )
+                fig_risk.update_layout(height=450, showlegend=False)
+                st.plotly_chart(fig_risk, use_container_width=True)
+
+
+                # =====================================================================
+                # SECTION 9.5 : AGE VS BMI BY CKD RISK
+                # =====================================================================
+
+                if (
+                    "Age" in risk_analysis.columns
+                    and
+                    "BMI" in risk_analysis.columns
+                ):
+
+                    st.divider()
+
+                    st.subheader(
+                        "👤 Age, BMI and CKD Risk"
+                    )
+
+
+                    fig_age_bmi, ax_age_bmi = plt.subplots(
+                        figsize=(10, 7)
+                    )
+
+
+                    for risk_group in [
+                        "Low CKD Risk",
+                        "High CKD Risk"
+                    ]:
+
+                        subset = risk_analysis[
+                            risk_analysis[
+                                "Predicted_CKD"
+                            ] == risk_group
+                        ]
+
+
+                        ax_age_bmi.scatter(
+                            subset["Age"],
+                            subset["BMI"],
+                            s=35,
+                            alpha=0.5,
+                            label=risk_group
+                        )
+
+
+                    ax_age_bmi.set_xlabel(
+                        "Age",
+                        fontsize=12
+                    )
+
+
+                    ax_age_bmi.set_ylabel(
+                        "BMI",
+                        fontsize=12
+                    )
+
+
+                    ax_age_bmi.set_title(
+                        "Age vs BMI by Predicted CKD Risk",
+                        fontsize=15,
+                        fontweight="bold"
+                    )
+
+
+                    ax_age_bmi.legend()
+
+
+                    ax_age_bmi.grid(
+                        alpha=0.3
+                    )
+
+
+                    plt.tight_layout()
+
+
+                    st.pyplot(
+                        fig_age_bmi
+                    )
+
+
+                    plt.close(
+                        fig_age_bmi
+                    )
+
+
+                # =====================================================================
+                # SECTION 9.6 : LIFESTYLE RISK
+                # =====================================================================
+
+                if "Lifestyle_Risk" in risk_analysis.columns:
+
+                    st.divider()
+
+                    st.subheader(
+                        "🏃 Lifestyle Risk and CKD Prediction"
+                    )
+
+
+                    lifestyle_table = (
+                        pd.crosstab(
+                            risk_analysis[
+                                "Lifestyle_Risk"
+                            ],
+                            risk_analysis[
+                                "Predicted_CKD"
+                            ]
+                        )
+                    )
+
+
+                    st.dataframe(
+                        lifestyle_table,
+                        use_container_width=True
+                    )
+
+
+                    fig_lifestyle, ax_lifestyle = plt.subplots(
+                        figsize=(9, 6)
+                    )
+
+
+                    lifestyle_table.plot(
+                        kind="bar",
+                        ax=ax_lifestyle,
+                        edgecolor="black"
+                    )
+
+
+                    ax_lifestyle.set_xlabel(
+                        "Lifestyle Risk",
+                        fontsize=12
+                    )
+
+
+                    ax_lifestyle.set_ylabel(
+                        "Number of Patients",
+                        fontsize=12
+                    )
+
+
+                    ax_lifestyle.set_title(
+                        "Lifestyle Risk by Predicted CKD Risk",
+                        fontsize=15,
+                        fontweight="bold"
+                    )
+
+
+                    ax_lifestyle.legend(
+                        title="Predicted CKD"
+                    )
+
+
+                    ax_lifestyle.grid(
+                        axis="y",
+                        alpha=0.3
+                    )
+
+
+                    plt.xticks(
+                        rotation=0
+                    )
+
+
+                    plt.tight_layout()
+
+
+                    st.pyplot(
+                        fig_lifestyle
+                    )
+
+
+                    plt.close(
+                        fig_lifestyle
+                    )
+
+
+                # =====================================================================
+                # SECTION 9.7 : METABOLIC RISK
+                # =====================================================================
+
+                if "Metabolic_Risk" in risk_analysis.columns:
+
+                    st.divider()
+
+                    st.subheader(
+                        "🧬 Metabolic Risk and CKD Prediction"
+                    )
+
+
+                    metabolic_table = (
+                        pd.crosstab(
+                            risk_analysis[
+                                "Metabolic_Risk"
+                            ],
+                            risk_analysis[
+                                "Predicted_CKD"
+                            ]
+                        )
+                    )
+
+
+                    st.dataframe(
+                        metabolic_table,
+                        use_container_width=True
+                    )
+
+
+                    fig_metabolic, ax_metabolic = plt.subplots(
+                        figsize=(9, 6)
+                    )
+
+
+                    metabolic_table.plot(
+                        kind="bar",
+                        ax=ax_metabolic,
+                        edgecolor="black"
+                    )
+
+
+                    ax_metabolic.set_xlabel(
+                        "Metabolic Risk",
+                        fontsize=12
+                    )
+
+
+                    ax_metabolic.set_ylabel(
+                        "Number of Patients",
+                        fontsize=12
+                    )
+
+
+                    ax_metabolic.set_title(
+                        "Metabolic Risk by Predicted CKD Risk",
+                        fontsize=15,
+                        fontweight="bold"
+                    )
+
+
+                    ax_metabolic.legend(
+                        title="Predicted CKD"
+                    )
+
+
+                    ax_metabolic.grid(
+                        axis="y",
+                        alpha=0.3
+                    )
+
+
+                    plt.xticks(
+                        rotation=0
+                    )
+
+
+                    plt.tight_layout()
+
+
+                    st.pyplot(
+                        fig_metabolic
+                    )
+
+
+                    plt.close(
+                        fig_metabolic
+                    )
+
+
+                # =====================================================================
+                # SECTION 9.8 : CARDIOVASCULAR RISK
+                # =====================================================================
+
+                if "CV_Risk" in risk_analysis.columns:
+
+                    st.divider()
+
+                    st.subheader(
+                        "❤️ Cardiovascular Risk and CKD Prediction"
+                    )
+
+
+                    cv_table = (
+                        pd.crosstab(
+                            risk_analysis[
+                                "CV_Risk"
+                            ],
+                            risk_analysis[
+                                "Predicted_CKD"
+                            ]
+                        )
+                    )
+
+
+                    st.dataframe(
+                        cv_table,
+                        use_container_width=True
+                    )
+
+
+                    fig_cv, ax_cv = plt.subplots(
+                        figsize=(9, 6)
+                    )
+
+
+                    cv_table.plot(
+                        kind="bar",
+                        ax=ax_cv,
+                        edgecolor="black"
+                    )
+
+
+                    ax_cv.set_xlabel(
+                        "Cardiovascular Risk",
+                        fontsize=12
+                    )
+
+
+                    ax_cv.set_ylabel(
+                        "Number of Patients",
+                        fontsize=12
+                    )
+
+
+                    ax_cv.set_title(
+                        "Cardiovascular Risk by Predicted CKD Risk",
+                        fontsize=15,
+                        fontweight="bold"
+                    )
+
+
+                    ax_cv.legend(
+                        title="Predicted CKD"
+                    )
+
+
+                    ax_cv.grid(
+                        axis="y",
+                        alpha=0.3
+                    )
+
+
+                    plt.xticks(
+                        rotation=0
+                    )
+
+
+                    plt.tight_layout()
+
+
+                    st.pyplot(
+                        fig_cv
+                    )
+
+
+                    plt.close(
+                        fig_cv
+                    )
+
+
+                # =====================================================================
+                # SECTION 9.9 : INSURANCE × CKD RISK
+                # =====================================================================
+
+                if "Health_Insurance" in risk_analysis.columns:
+
+                    st.divider()
+
+                    st.subheader(
+                        "🛡️ Insurance Status and Predicted CKD Risk"
+                    )
+
+
+                    insurance_risk_table = (
+                        pd.crosstab(
+                            risk_analysis[
+                                "Health_Insurance"
+                            ],
+                            risk_analysis[
+                                "Predicted_CKD"
+                            ]
+                        )
+                    )
+
+
+                    st.dataframe(
+                        insurance_risk_table,
+                        use_container_width=True
+                    )
+
+
+                    fig_insurance, ax_insurance = plt.subplots(
+                        figsize=(9, 6)
+                    )
+
+
+                    insurance_risk_table.plot(
+                        kind="bar",
+                        ax=ax_insurance,
+                        edgecolor="black"
+                    )
+
+
+                    ax_insurance.set_xlabel(
+                        "Health Insurance",
+                        fontsize=12
+                    )
+
+
+                    ax_insurance.set_ylabel(
+                        "Number of Patients",
+                        fontsize=12
+                    )
+
+
+                    ax_insurance.set_title(
+                        "Predicted CKD Risk by Health Insurance Status",
+                        fontsize=15,
+                        fontweight="bold"
+                    )
+
+
+                    ax_insurance.legend(
+                        title="Predicted CKD"
+                    )
+
+
+                    ax_insurance.grid(
+                        axis="y",
+                        alpha=0.3
+                    )
+
+
+                    plt.xticks(
+                        rotation=0
+                    )
+
+
+                    plt.tight_layout()
+
+
+                    st.pyplot(
+                        fig_insurance
+                    )
+
+
+                    plt.close(
+                        fig_insurance
+                    )
+
+
+                # =====================================================================
+                # SECTION 9.10 : RISK GROUP CREATION
+                # =====================================================================
+
+                if "Health_Insurance" in risk_analysis.columns:
+
+                    risk_analysis["Risk_Group"] = (
+
+                        risk_analysis[
+                            "Predicted_CKD"
+                        ].astype(str)
+
+                        + " | "
+
+                        + risk_analysis[
+                            "Health_Insurance"
+                        ].astype(str)
+
+                    )
+
+
+                    st.divider()
+
+                    st.subheader(
+                        "🎯 CKD Risk Groups"
+                    )
+
+
+                    risk_group_counts = (
+                        risk_analysis[
+                            "Risk_Group"
+                        ]
+                        .value_counts()
+                    )
+
+
+                    fig_groups, ax_groups = plt.subplots(
+                        figsize=(11, 6)
+                    )
+
+
+                    ax_groups.bar(
+                        risk_group_counts.index,
+                        risk_group_counts.values,
+                        edgecolor="black",
+                        linewidth=0.8
+                    )
+
+
+                    ax_groups.set_xlabel(
+                        "Risk Group",
+                        fontsize=12
+                    )
+
+
+                    ax_groups.set_ylabel(
+                        "Number of Patients",
+                        fontsize=12
+                    )
+
+
+                    ax_groups.set_title(
+                        "CKD Risk Groups by Insurance Status",
+                        fontsize=15,
+                        fontweight="bold"
+                    )
+
+
+                    ax_groups.tick_params(
+                        axis="x",
+                        rotation=20
+                    )
+
+
+                    ax_groups.grid(
+                        axis="y",
+                        alpha=0.3
+                    )
+
+
+                    plt.tight_layout()
+
+
+                    st.pyplot(
+                        fig_groups
+                    )
+
+
+                    plt.close(
+                        fig_groups
+                    )
+
+
+                    # -----------------------------------------------------------------
+                    # RISK GROUP TABLE
+                    # -----------------------------------------------------------------
+
+                    st.dataframe(
+                        risk_group_counts
+                        .rename(
+                            "Patient Count"
+                        )
+                        .reset_index()
+                        .rename(
+                            columns={
+                                "index": "Risk Group"
+                            }
+                        ),
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+
+    # =============================================================================
+    # END OF STEP 9
+    # =============================================================================
+        #
+    # STEP 9 COMPLETE:
+    #
+    # ✓ Predicted CKD risk distribution
+    # ✓ High/Low CKD risk summary
+    # ✓ Age vs BMI by CKD risk
+    # ✓ Lifestyle Risk analysis
+    # ✓ Metabolic Risk analysis
+    # ✓ Cardiovascular Risk analysis
+    # ✓ Insurance × CKD Risk
+    # ✓ Risk_Group construction
+    # ✓ Risk-group visualisation
+    #
+    # =============================================================================
+
+    
+        # =============================================================================
+    
+        # =============================================================================
+        #
+        # STEP 10 COMPLETE:
+        #
+        # ✓ Insurance status distribution
+        # ✓ CKD risk × insurance
+        # ✓ Risk-group distribution
+        # ✓ Insurance-based CKD segmentation
+        # ✓ Income × Age × BMI portfolio landscape
+        # ✓ Insurance risk portfolio table
+        #
+        # NEXT:
+        #
+        # STEP 11 — EXPLAINABILITY VISUALISATIONS
+        #
+        # =============================================================================
+
+
+
+
+    # =============================================================================
+    # END OF STEP 7
+    # =============================================================================
+    #
+    # STEP 7 STRUCTURE:
+    #
+    # 📈 CKD Visualisations
+    #
+    #     ├── 📊 Overview
+    #     ├── 👤 Demographic Analysis
+    #     ├── 🩺 Clinical Risk Factors
+    #     ├── 🏃 Lifestyle Analysis
+    #     ├── ⚠️ CKD Risk Analysis
+    #     ├── 🤖 Model Visualisations
+    #     └── 🛡️ Insurance & Risk Analysis
+    #
+    # =============================================================================
+
+
+
+    # =============================================================================
+    # STEP 10 : INSURANCE ANALYTICS
+    # =============================================================================
+
+if is_insurance_section:
+    with tab_insurance:
+
+
+        st.title("🏥 Insurance Analytics")
+        st.write("Insurance-risk analysis from the SVM validation predictions. This section is intentionally separate from CKD Visualisations.")
+
+
+            # =========================================================================
+        # SECTION 10.1 : HEADER
+        # =========================================================================
+
+        st.header(
+            "🛡️ Insurance & CKD Risk Analysis"
+        )
+
+        st.write(
+            """
+            Visual exploration of the relationship between predicted CKD risk,
+            health-insurance status, demographics and household income.
+            """
+        )
+
+
+        # =========================================================================
+        # SECTION 10.2 : PREPARE INSURANCE ANALYSIS DATA
         # =========================================================================
 
         if (
             "x_valid" not in globals()
-            or
-            "y_pred_svm" not in globals()
+            or x_valid is None
+            or "y_pred_svm" not in globals()
+            or y_pred_svm is None
         ):
 
-            st.warning(
-                """
-                The validation dataset and SVM predictions are not currently
-                available for the CKD risk visualisations.
-                """
+            st.info(
+                "The Insurance tab is connected to the shared validation/SVM evaluation."
             )
 
         else:
 
-            risk_analysis = x_valid.copy()
+            insurance_analysis = x_valid.copy()
 
 
             # ---------------------------------------------------------------------
-            # CREATE PREDICTED CKD
+            # PREDICTED CKD
             # ---------------------------------------------------------------------
 
-            risk_analysis["Predicted_CKD"] = (
+            insurance_analysis["Predicted_CKD"] = (
                 y_pred_svm
             )
 
 
-            # ---------------------------------------------------------------------
-            # CONVERT PREDICTION TO PROJECT LABELS
-            # ---------------------------------------------------------------------
-
-            risk_analysis["Predicted_CKD"] = (
-                risk_analysis["Predicted_CKD"]
+            insurance_analysis["Predicted_CKD"] = (
+                insurance_analysis["Predicted_CKD"]
                 .replace(
                     {
                         0: "Low CKD Risk",
@@ -4712,13 +5600,13 @@ with tab_ckd_visuals:
 
 
             # ---------------------------------------------------------------------
-            # CONVERT INSURANCE STATUS
+            # HEALTH INSURANCE LABEL
             # ---------------------------------------------------------------------
 
-            if "Health_Insurance" in risk_analysis.columns:
+            if "Health_Insurance" in insurance_analysis.columns:
 
-                risk_analysis["Health_Insurance"] = (
-                    risk_analysis["Health_Insurance"]
+                insurance_analysis["Health_Insurance"] = (
+                    insurance_analysis["Health_Insurance"]
                     .replace(
                         {
                             0: "No Insurance",
@@ -4729,492 +5617,148 @@ with tab_ckd_visuals:
 
 
             # ---------------------------------------------------------------------
-            # CREATE RISK LEVEL
+            # CREATE RISK GROUP
             # ---------------------------------------------------------------------
 
-            risk_analysis["Risk_Level"] = (
-                risk_analysis["Predicted_CKD"]
-            )
+            if "Health_Insurance" in insurance_analysis.columns:
+
+                insurance_analysis["Risk_Group"] = (
+
+                    insurance_analysis[
+                        "Predicted_CKD"
+                    ].astype(str)
+
+                    + " | "
+
+                    + insurance_analysis[
+                        "Health_Insurance"
+                    ].astype(str)
+
+                )
 
 
-            # =====================================================================
-            # SECTION 9.3 : RISK SUMMARY
-            # =====================================================================
+            # =========================================================================
+            # SECTION 10.3 : INSURANCE × CKD RISK SUMMARY
+            # =========================================================================
 
             st.divider()
 
             st.subheader(
-                "📊 CKD Risk Summary"
+                "📊 Insurance and CKD Risk Summary"
             )
 
 
-            total_population = len(
-                risk_analysis
-            )
+            if "Health_Insurance" in insurance_analysis.columns:
 
-
-            high_risk_count = (
-                risk_analysis["Predicted_CKD"]
-                .eq("High CKD Risk")
-                .sum()
-            )
-
-
-            low_risk_count = (
-                risk_analysis["Predicted_CKD"]
-                .eq("Low CKD Risk")
-                .sum()
-            )
-
-
-            high_risk_percentage = (
-                high_risk_count
-                / total_population
-                * 100
-                if total_population > 0
-                else 0
-            )
-
-
-            summary_col1, \
-            summary_col2, \
-            summary_col3 = st.columns(3)
-
-
-            with summary_col1:
-
-                st.metric(
-                    "Validation Population",
-                    f"{total_population:,}"
-                )
-
-
-            with summary_col2:
-
-                st.metric(
-                    "High CKD Risk",
-                    f"{high_risk_count:,}"
-                )
-
-
-            with summary_col3:
-
-                st.metric(
-                    "High-Risk Percentage",
-                    f"{high_risk_percentage:.2f}%"
-                )
-
-
-            # =====================================================================
-            # SECTION 9.4 : CKD RISK DISTRIBUTION
-            # =====================================================================
-
-            st.divider()
-
-            st.subheader(
-                "🩺 Predicted CKD Risk Distribution"
-            )
-
-
-            risk_counts = (
-                risk_analysis["Predicted_CKD"]
-                .value_counts()
-            )
-
-
-            fig_risk = px.bar(
-                x=risk_counts.index,
-                y=risk_counts.values,
-                color=risk_counts.index,
-                color_discrete_map={
-                    "High CKD Risk": "#e74c3c",
-                    "Low CKD Risk": "#27ae60"
-                },
-                labels={"x": "Predicted CKD Risk", "y": "Number of Patients"},
-                title="Predicted CKD Risk Distribution"
-            )
-            fig_risk.update_layout(height=450, showlegend=False)
-            st.plotly_chart(fig_risk, use_container_width=True)
-
-
-            # =====================================================================
-            # SECTION 9.5 : AGE VS BMI BY CKD RISK
-            # =====================================================================
-
-            if (
-                "Age" in risk_analysis.columns
-                and
-                "BMI" in risk_analysis.columns
-            ):
-
-                st.divider()
-
-                st.subheader(
-                    "👤 Age, BMI and CKD Risk"
-                )
-
-
-                fig_age_bmi, ax_age_bmi = plt.subplots(
-                    figsize=(10, 7)
-                )
-
-
-                for risk_group in [
-                    "Low CKD Risk",
-                    "High CKD Risk"
-                ]:
-
-                    subset = risk_analysis[
-                        risk_analysis[
-                            "Predicted_CKD"
-                        ] == risk_group
+                insured_count = (
+                    insurance_analysis[
+                        "Health_Insurance"
                     ]
+                    .eq("Has Insurance")
+                    .sum()
+                )
 
 
-                    ax_age_bmi.scatter(
-                        subset["Age"],
-                        subset["BMI"],
-                        s=35,
-                        alpha=0.5,
-                        label=risk_group
+                uninsured_count = (
+                    insurance_analysis[
+                        "Health_Insurance"
+                    ]
+                    .eq("No Insurance")
+                    .sum()
+                )
+
+
+                high_risk_count = (
+                    insurance_analysis[
+                        "Predicted_CKD"
+                    ]
+                    .eq("High CKD Risk")
+                    .sum()
+                )
+
+
+                summary_col1, \
+                summary_col2, \
+                summary_col3 = st.columns(3)
+
+
+                with summary_col1:
+
+                    st.metric(
+                        "Has Insurance",
+                        f"{insured_count:,}"
                     )
 
 
-                ax_age_bmi.set_xlabel(
-                    "Age",
-                    fontsize=12
-                )
+                with summary_col2:
+
+                    st.metric(
+                        "No Insurance",
+                        f"{uninsured_count:,}"
+                    )
 
 
-                ax_age_bmi.set_ylabel(
-                    "BMI",
-                    fontsize=12
-                )
+                with summary_col3:
+
+                    st.metric(
+                        "High CKD Risk",
+                        f"{high_risk_count:,}"
+                    )
 
 
-                ax_age_bmi.set_title(
-                    "Age vs BMI by Predicted CKD Risk",
-                    fontsize=15,
-                    fontweight="bold"
-                )
+            # =========================================================================
+            # SECTION 10.4 : INSURANCE STATUS DISTRIBUTION
+            # =========================================================================
 
-
-                ax_age_bmi.legend()
-
-
-                ax_age_bmi.grid(
-                    alpha=0.3
-                )
-
-
-                plt.tight_layout()
-
-
-                st.pyplot(
-                    fig_age_bmi
-                )
-
-
-                plt.close(
-                    fig_age_bmi
-                )
-
-
-            # =====================================================================
-            # SECTION 9.6 : LIFESTYLE RISK
-            # =====================================================================
-
-            if "Lifestyle_Risk" in risk_analysis.columns:
+            if "Health_Insurance" in insurance_analysis.columns:
 
                 st.divider()
 
                 st.subheader(
-                    "🏃 Lifestyle Risk and CKD Prediction"
+                    "🛡️ Health Insurance Distribution"
                 )
 
 
-                lifestyle_table = (
-                    pd.crosstab(
-                        risk_analysis[
-                            "Lifestyle_Risk"
-                        ],
-                        risk_analysis[
-                            "Predicted_CKD"
-                        ]
-                    )
+                insurance_counts = (
+                    insurance_analysis[
+                        "Health_Insurance"
+                    ]
+                    .value_counts()
                 )
 
 
-                st.dataframe(
-                    lifestyle_table,
-                    use_container_width=True
+                fig_insurance_dist = px.bar(
+                    x=insurance_counts.index,
+                    y=insurance_counts.values,
+                    color=insurance_counts.index,
+                    color_discrete_sequence=["#2563EB", "#F59E0B", "#10B981", "#8B5CF6", "#EC4899", "#06B6D4"],
+                    labels={"x": "Health Insurance Status", "y": "Number of Patients"},
+                    title="Health Insurance Distribution"
                 )
+                fig_insurance_dist.update_layout(height=450, showlegend=False)
+                st.plotly_chart(fig_insurance_dist, use_container_width=True)
 
 
-                fig_lifestyle, ax_lifestyle = plt.subplots(
-                    figsize=(9, 6)
-                )
+            # =========================================================================
+            # SECTION 10.5 : CKD RISK × INSURANCE
+            # =========================================================================
 
-
-                lifestyle_table.plot(
-                    kind="bar",
-                    ax=ax_lifestyle,
-                    edgecolor="black"
-                )
-
-
-                ax_lifestyle.set_xlabel(
-                    "Lifestyle Risk",
-                    fontsize=12
-                )
-
-
-                ax_lifestyle.set_ylabel(
-                    "Number of Patients",
-                    fontsize=12
-                )
-
-
-                ax_lifestyle.set_title(
-                    "Lifestyle Risk by Predicted CKD Risk",
-                    fontsize=15,
-                    fontweight="bold"
-                )
-
-
-                ax_lifestyle.legend(
-                    title="Predicted CKD"
-                )
-
-
-                ax_lifestyle.grid(
-                    axis="y",
-                    alpha=0.3
-                )
-
-
-                plt.xticks(
-                    rotation=0
-                )
-
-
-                plt.tight_layout()
-
-
-                st.pyplot(
-                    fig_lifestyle
-                )
-
-
-                plt.close(
-                    fig_lifestyle
-                )
-
-
-            # =====================================================================
-            # SECTION 9.7 : METABOLIC RISK
-            # =====================================================================
-
-            if "Metabolic_Risk" in risk_analysis.columns:
+            if "Health_Insurance" in insurance_analysis.columns:
 
                 st.divider()
 
                 st.subheader(
-                    "🧬 Metabolic Risk and CKD Prediction"
+                    "⚠️ CKD Risk by Insurance Status"
                 )
 
 
-                metabolic_table = (
-                    pd.crosstab(
-                        risk_analysis[
-                            "Metabolic_Risk"
-                        ],
-                        risk_analysis[
-                            "Predicted_CKD"
-                        ]
-                    )
-                )
-
-
-                st.dataframe(
-                    metabolic_table,
-                    use_container_width=True
-                )
-
-
-                fig_metabolic, ax_metabolic = plt.subplots(
-                    figsize=(9, 6)
-                )
-
-
-                metabolic_table.plot(
-                    kind="bar",
-                    ax=ax_metabolic,
-                    edgecolor="black"
-                )
-
-
-                ax_metabolic.set_xlabel(
-                    "Metabolic Risk",
-                    fontsize=12
-                )
-
-
-                ax_metabolic.set_ylabel(
-                    "Number of Patients",
-                    fontsize=12
-                )
-
-
-                ax_metabolic.set_title(
-                    "Metabolic Risk by Predicted CKD Risk",
-                    fontsize=15,
-                    fontweight="bold"
-                )
-
-
-                ax_metabolic.legend(
-                    title="Predicted CKD"
-                )
-
-
-                ax_metabolic.grid(
-                    axis="y",
-                    alpha=0.3
-                )
-
-
-                plt.xticks(
-                    rotation=0
-                )
-
-
-                plt.tight_layout()
-
-
-                st.pyplot(
-                    fig_metabolic
-                )
-
-
-                plt.close(
-                    fig_metabolic
-                )
-
-
-            # =====================================================================
-            # SECTION 9.8 : CARDIOVASCULAR RISK
-            # =====================================================================
-
-            if "CV_Risk" in risk_analysis.columns:
-
-                st.divider()
-
-                st.subheader(
-                    "❤️ Cardiovascular Risk and CKD Prediction"
-                )
-
-
-                cv_table = (
-                    pd.crosstab(
-                        risk_analysis[
-                            "CV_Risk"
-                        ],
-                        risk_analysis[
-                            "Predicted_CKD"
-                        ]
-                    )
-                )
-
-
-                st.dataframe(
-                    cv_table,
-                    use_container_width=True
-                )
-
-
-                fig_cv, ax_cv = plt.subplots(
-                    figsize=(9, 6)
-                )
-
-
-                cv_table.plot(
-                    kind="bar",
-                    ax=ax_cv,
-                    edgecolor="black"
-                )
-
-
-                ax_cv.set_xlabel(
-                    "Cardiovascular Risk",
-                    fontsize=12
-                )
-
-
-                ax_cv.set_ylabel(
-                    "Number of Patients",
-                    fontsize=12
-                )
-
-
-                ax_cv.set_title(
-                    "Cardiovascular Risk by Predicted CKD Risk",
-                    fontsize=15,
-                    fontweight="bold"
-                )
-
-
-                ax_cv.legend(
-                    title="Predicted CKD"
-                )
-
-
-                ax_cv.grid(
-                    axis="y",
-                    alpha=0.3
-                )
-
-
-                plt.xticks(
-                    rotation=0
-                )
-
-
-                plt.tight_layout()
-
-
-                st.pyplot(
-                    fig_cv
-                )
-
-
-                plt.close(
-                    fig_cv
-                )
-
-
-            # =====================================================================
-            # SECTION 9.9 : INSURANCE × CKD RISK
-            # =====================================================================
-
-            if "Health_Insurance" in risk_analysis.columns:
-
-                st.divider()
-
-                st.subheader(
-                    "🛡️ Insurance Status and Predicted CKD Risk"
-                )
-
-
-                insurance_risk_table = (
-                    pd.crosstab(
-                        risk_analysis[
-                            "Health_Insurance"
-                        ],
-                        risk_analysis[
-                            "Predicted_CKD"
-                        ]
-                    )
+                insurance_risk_table = pd.crosstab(
+                    insurance_analysis[
+                        "Health_Insurance"
+                    ],
+                    insurance_analysis[
+                        "Predicted_CKD"
+                    ]
                 )
 
 
@@ -5224,43 +5768,43 @@ with tab_ckd_visuals:
                 )
 
 
-                fig_insurance, ax_insurance = plt.subplots(
-                    figsize=(9, 6)
+                fig_insurance_risk, ax_insurance_risk = plt.subplots(
+                    figsize=(10, 6)
                 )
 
 
                 insurance_risk_table.plot(
                     kind="bar",
-                    ax=ax_insurance,
+                    ax=ax_insurance_risk,
                     edgecolor="black"
                 )
 
 
-                ax_insurance.set_xlabel(
-                    "Health Insurance",
+                ax_insurance_risk.set_xlabel(
+                    "Health Insurance Status",
                     fontsize=12
                 )
 
 
-                ax_insurance.set_ylabel(
+                ax_insurance_risk.set_ylabel(
                     "Number of Patients",
                     fontsize=12
                 )
 
 
-                ax_insurance.set_title(
-                    "Predicted CKD Risk by Health Insurance Status",
+                ax_insurance_risk.set_title(
+                    "Predicted CKD Risk by Insurance Status",
                     fontsize=15,
                     fontweight="bold"
                 )
 
 
-                ax_insurance.legend(
+                ax_insurance_risk.legend(
                     title="Predicted CKD"
                 )
 
 
-                ax_insurance.grid(
+                ax_insurance_risk.grid(
                     axis="y",
                     alpha=0.3
                 )
@@ -5275,57 +5819,42 @@ with tab_ckd_visuals:
 
 
                 st.pyplot(
-                    fig_insurance
+                    fig_insurance_risk
                 )
 
 
                 plt.close(
-                    fig_insurance
+                    fig_insurance_risk
                 )
 
 
-            # =====================================================================
-            # SECTION 9.10 : RISK GROUP CREATION
-            # =====================================================================
+            # =========================================================================
+            # SECTION 10.6 : RISK GROUP DISTRIBUTION
+            # =========================================================================
 
-            if "Health_Insurance" in risk_analysis.columns:
-
-                risk_analysis["Risk_Group"] = (
-
-                    risk_analysis[
-                        "Predicted_CKD"
-                    ].astype(str)
-
-                    + " | "
-
-                    + risk_analysis[
-                        "Health_Insurance"
-                    ].astype(str)
-
-                )
-
+            if "Risk_Group" in insurance_analysis.columns:
 
                 st.divider()
 
                 st.subheader(
-                    "🎯 CKD Risk Groups"
+                    "🎯 Insurance-Based CKD Risk Groups"
                 )
 
 
                 risk_group_counts = (
-                    risk_analysis[
+                    insurance_analysis[
                         "Risk_Group"
                     ]
                     .value_counts()
                 )
 
 
-                fig_groups, ax_groups = plt.subplots(
+                fig_risk_group, ax_risk_group = plt.subplots(
                     figsize=(11, 6)
                 )
 
 
-                ax_groups.bar(
+                ax_risk_group.bar(
                     risk_group_counts.index,
                     risk_group_counts.values,
                     edgecolor="black",
@@ -5333,32 +5862,32 @@ with tab_ckd_visuals:
                 )
 
 
-                ax_groups.set_xlabel(
+                ax_risk_group.set_xlabel(
                     "Risk Group",
                     fontsize=12
                 )
 
 
-                ax_groups.set_ylabel(
+                ax_risk_group.set_ylabel(
                     "Number of Patients",
                     fontsize=12
                 )
 
 
-                ax_groups.set_title(
+                ax_risk_group.set_title(
                     "CKD Risk Groups by Insurance Status",
                     fontsize=15,
                     fontweight="bold"
                 )
 
 
-                ax_groups.tick_params(
+                ax_risk_group.tick_params(
                     axis="x",
                     rotation=20
                 )
 
 
-                ax_groups.grid(
+                ax_risk_group.grid(
                     axis="y",
                     alpha=0.3
                 )
@@ -5368,18 +5897,14 @@ with tab_ckd_visuals:
 
 
                 st.pyplot(
-                    fig_groups
+                    fig_risk_group
                 )
 
 
                 plt.close(
-                    fig_groups
+                    fig_risk_group
                 )
 
-
-                # -----------------------------------------------------------------
-                # RISK GROUP TABLE
-                # -----------------------------------------------------------------
 
                 st.dataframe(
                     risk_group_counts
@@ -5397,1399 +5922,784 @@ with tab_ckd_visuals:
                 )
 
 
-# =============================================================================
-# END OF STEP 9
-# =============================================================================
-    #
-# STEP 9 COMPLETE:
-#
-# ✓ Predicted CKD risk distribution
-# ✓ High/Low CKD risk summary
-# ✓ Age vs BMI by CKD risk
-# ✓ Lifestyle Risk analysis
-# ✓ Metabolic Risk analysis
-# ✓ Cardiovascular Risk analysis
-# ✓ Insurance × CKD Risk
-# ✓ Risk_Group construction
-# ✓ Risk-group visualisation
-#
-# =============================================================================
+            # =========================================================================
+            # SECTION 10.7 : INCOME × AGE × BMI RISK LANDSCAPE
+            # =========================================================================
 
-    
-    # =============================================================================
-    
-    # =============================================================================
-    #
-    # STEP 10 COMPLETE:
-    #
-    # ✓ Insurance status distribution
-    # ✓ CKD risk × insurance
-    # ✓ Risk-group distribution
-    # ✓ Insurance-based CKD segmentation
-    # ✓ Income × Age × BMI portfolio landscape
-    # ✓ Insurance risk portfolio table
-    #
-    # NEXT:
-    #
-    # STEP 11 — EXPLAINABILITY VISUALISATIONS
-    #
-    # =============================================================================
+            required_portfolio_columns = [
+
+                "Annual_Household_Income_USD",
+
+                "Age",
+
+                "BMI",
+
+                "Risk_Group"
+
+            ]
 
 
-
-
-# =============================================================================
-# END OF STEP 7
-# =============================================================================
-#
-# STEP 7 STRUCTURE:
-#
-# 📈 CKD Visualisations
-#
-#     ├── 📊 Overview
-#     ├── 👤 Demographic Analysis
-#     ├── 🩺 Clinical Risk Factors
-#     ├── 🏃 Lifestyle Analysis
-#     ├── ⚠️ CKD Risk Analysis
-#     ├── 🤖 Model Visualisations
-#     └── 🛡️ Insurance & Risk Analysis
-#
-# =============================================================================
-
-
-
-# =============================================================================
-# STEP 10 : INSURANCE ANALYTICS
-# =============================================================================
-
-with tab_insurance:
-
-
-    st.title("🏥 Insurance Analytics")
-    st.write("Insurance-risk analysis from the SVM validation predictions. This section is intentionally separate from CKD Visualisations.")
-
-
-        # =========================================================================
-    # SECTION 10.1 : HEADER
-    # =========================================================================
-
-    st.header(
-        "🛡️ Insurance & CKD Risk Analysis"
-    )
-
-    st.write(
-        """
-        Visual exploration of the relationship between predicted CKD risk,
-        health-insurance status, demographics and household income.
-        """
-    )
-
-
-    # =========================================================================
-    # SECTION 10.2 : PREPARE INSURANCE ANALYSIS DATA
-    # =========================================================================
-
-    if (
-        "x_valid" not in globals()
-        or x_valid is None
-        or "y_pred_svm" not in globals()
-        or y_pred_svm is None
-    ):
-
-        st.info(
-            "The Insurance tab is connected to the shared validation/SVM evaluation."
-        )
-
-    else:
-
-        insurance_analysis = x_valid.copy()
-
-
-        # ---------------------------------------------------------------------
-        # PREDICTED CKD
-        # ---------------------------------------------------------------------
-
-        insurance_analysis["Predicted_CKD"] = (
-            y_pred_svm
-        )
-
-
-        insurance_analysis["Predicted_CKD"] = (
-            insurance_analysis["Predicted_CKD"]
-            .replace(
-                {
-                    0: "Low CKD Risk",
-                    1: "High CKD Risk"
-                }
+            portfolio_columns_available = all(
+                column in insurance_analysis.columns
+                for column in required_portfolio_columns
             )
+
+
+            if portfolio_columns_available:
+
+                st.divider()
+
+                st.subheader(
+                    "🌐 Insurance Portfolio Risk Landscape"
+                )
+
+                st.caption(
+                    """
+                    Household income is shown against age, while BMI represents
+                    the relative size of each observation and Risk Group
+                    identifies the CKD-insurance segment.
+                    """
+                )
+
+
+                fig_portfolio, ax_portfolio = plt.subplots(
+                    figsize=(12, 8)
+                )
+
+
+                risk_groups = (
+                    insurance_analysis[
+                        "Risk_Group"
+                    ]
+                    .dropna()
+                    .unique()
+                )
+
+
+                for risk_group in risk_groups:
+
+                    subset = insurance_analysis[
+                        insurance_analysis[
+                            "Risk_Group"
+                        ] == risk_group
+                    ]
+
+
+                    ax_portfolio.scatter(
+                        subset[
+                            "Annual_Household_Income_USD"
+                        ],
+
+                        subset[
+                            "Age"
+                        ],
+
+                        s=(
+                            subset[
+                                "BMI"
+                            ].clip(
+                                lower=10
+                            )
+                            * 8
+                        ),
+
+                        alpha=0.55,
+
+                        label=risk_group
+                    )
+
+
+                ax_portfolio.set_xlabel(
+                    "Annual Household Income (USD)",
+                    fontsize=12
+                )
+
+
+                ax_portfolio.set_ylabel(
+                    "Age",
+                    fontsize=12
+                )
+
+
+                ax_portfolio.set_title(
+                    "Insurance Portfolio Risk Landscape",
+                    fontsize=15,
+                    fontweight="bold"
+                )
+
+
+                ax_portfolio.legend(
+                    title="Risk Group",
+                    bbox_to_anchor=(
+                        1.02,
+                        1
+                    ),
+                    loc="upper left"
+                )
+
+
+                ax_portfolio.grid(
+                    alpha=0.25
+                )
+
+
+                plt.tight_layout()
+
+
+                st.pyplot(
+                    fig_portfolio
+                )
+
+
+                plt.close(
+                    fig_portfolio
+                )
+
+
+            else:
+
+                st.info(
+                    """
+                    The portfolio risk landscape requires:
+
+                    Annual_Household_Income_USD
+                    Age
+                    BMI
+                    Risk_Group
+                    """
+                )
+
+
+            # =========================================================================
+            # SECTION 10.8 : INSURANCE RISK TABLE
+            # =========================================================================
+
+            st.divider()
+
+            st.subheader(
+                "📋 Insurance Risk Portfolio"
+            )
+
+
+            display_columns = [
+
+                "Predicted_CKD",
+
+                "Health_Insurance",
+
+                "Risk_Group"
+
+            ]
+
+
+            display_columns = [
+
+                column
+
+                for column in display_columns
+
+                if column in insurance_analysis.columns
+
+            ]
+
+
+            if display_columns:
+
+                st.dataframe(
+                    insurance_analysis[
+                        display_columns
+                    ].head(100),
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+
+        # =============================================================================
+
+
+    # =============================================================================
+    # STEP 10B : EXISTING EARLY-SCREENING INTERACTIVE INSURANCE ANALYSIS
+    # =============================================================================
+    # The original Insurance analysis is retained. Figures are cached in
+    # session_state so Streamlit does not rebuild every Plotly object on every
+    # rerun (especially when the user changes an unrelated input).
+
+if is_insurance_section:
+    with tab_insurance:
+
+        st.title("🏥 Insurance Analytics")
+
+        st.write(
+            "Insurance portfolio analysis connected to the final CKD Linear SVM "
+            "validation predictions."
         )
 
+        if not evaluation_loaded:
 
-        # ---------------------------------------------------------------------
-        # HEALTH INSURANCE LABEL
-        # ---------------------------------------------------------------------
+            st.warning(
+                "The shared CKD evaluation dataset is not available in this deployment. "
+                "Insurance Analytics can still be evaluated by supplying the same CKD "
+                "evaluation CSV used for the project."
+            )
+            st.caption(
+                "Use a compatible CKD evaluation CSV containing the SVM input features, "
+                "including Health_Insurance and a CKD target column (e.g. CKD_Any, CKD, "
+                "CKD_Stage or TARGET). The uploaded file is used only for this session."
+            )
 
-        if "Health_Insurance" in insurance_analysis.columns:
+            insurance_upload = st.file_uploader(
+                "Upload CKD evaluation dataset (CSV)",
+                type=["csv"],
+                key="insurance_evaluation_upload"
+            )
 
-            insurance_analysis["Health_Insurance"] = (
-                insurance_analysis["Health_Insurance"]
-                .replace(
-                    {
+            if insurance_upload is not None and final_svm_pipeline is not None:
+                try:
+                    uploaded_df = pd.read_csv(insurance_upload)
+                    uploaded_df = _add_early_screening_features(uploaded_df)
+                    uploaded_df, uploaded_y = _build_project_target(uploaded_df)
+
+                    # Find the fitted raw-feature schema from the saved pipeline.
+                    uploaded_pre = None
+                    if hasattr(final_svm_pipeline, "named_steps"):
+                        for step in final_svm_pipeline.named_steps.values():
+                            if hasattr(step, "feature_names_in_"):
+                                uploaded_pre = step
+                                break
+                    if uploaded_pre is None or not hasattr(uploaded_pre, "feature_names_in_"):
+                        raise ValueError("The saved SVM pipeline does not expose its raw feature schema.")
+
+                    expected_uploaded = list(uploaded_pre.feature_names_in_)
+                    missing_uploaded = [c for c in expected_uploaded if c not in uploaded_df.columns]
+                    if missing_uploaded:
+                        raise ValueError(
+                            "The uploaded dataset is missing required SVM columns: "
+                            + ", ".join(missing_uploaded[:12])
+                            + (" ..." if len(missing_uploaded) > 12 else "")
+                        )
+
+                    upload_x = uploaded_df[expected_uploaded].copy()
+                    upload_pred = final_svm_pipeline.predict(upload_x)
+
+                    x_valid_local = upload_x.reset_index(drop=True)
+                    y_pred_local = pd.Series(upload_pred).reset_index(drop=True)
+
+                    if "Health_Insurance" not in x_valid_local.columns:
+                        raise ValueError("Health_Insurance is missing from the uploaded dataset.")
+
+                    insurance_analysis = x_valid_local.copy()
+                    insurance_analysis["Predicted_CKD"] = y_pred_local
+                    insurance_analysis["Predicted_CKD"] = insurance_analysis["Predicted_CKD"].replace({
+                        0: "Low CKD Risk",
+                        1: "High CKD Risk"
+                    })
+                    insurance_analysis["Health_Insurance"] = insurance_analysis["Health_Insurance"].replace({
                         0: "No Insurance",
                         1: "Has Insurance"
-                    }
-                )
+                    })
+                    insurance_analysis["Risk_Level"] = insurance_analysis["Predicted_CKD"].replace({
+                        "Low CKD Risk": "Low Risk",
+                        "High CKD Risk": "High Risk"
+                    })
+                    insurance_analysis["Risk_Group"] = (
+                        insurance_analysis["Predicted_CKD"].astype(str)
+                        + " | "
+                        + insurance_analysis["Health_Insurance"].astype(str)
+                    )
+
+                    # Continue through the same existing insurance visualisations
+                    # using the session-local uploaded evaluation dataframe.
+                    portfolio = insurance_analysis
+                    total_members = len(portfolio)
+                    high_risk = (portfolio["Risk_Level"] == "High Risk").sum()
+                    low_risk = (portfolio["Risk_Level"] == "Low Risk").sum()
+                    insured = (portfolio["Health_Insurance"] == "Has Insurance").sum()
+                    uninsured = (portfolio["Health_Insurance"] == "No Insurance").sum()
+
+                    st.success(f"Loaded {total_members:,} evaluation records for Insurance Analytics.")
+                    c1, c2, c3, c4, c5 = st.columns(5)
+                    with c1: st.metric("Total Members", f"{total_members:,}")
+                    with c2: st.metric("Low Risk", f"{low_risk:,}")
+                    with c3: st.metric("High Risk", f"{high_risk:,}")
+                    with c4: st.metric("Insured", f"{insured:,}")
+                    with c5: st.metric("Uninsured", f"{uninsured:,}")
+
+                    st.divider()
+                    st.subheader("📈 Portfolio Risk Distribution")
+                    risk_distribution = portfolio["Risk_Level"].value_counts().reset_index()
+                    risk_distribution.columns = ["Risk Level", "Members"]
+                    fig_risk_u, ax_risk_u = plt.subplots(figsize=(8, 5))
+                    ax_risk_u.bar(risk_distribution["Risk Level"], risk_distribution["Members"], edgecolor="black")
+                    ax_risk_u.set_xlabel("Risk Level")
+                    ax_risk_u.set_ylabel("Number of Members")
+                    ax_risk_u.set_title("Portfolio Risk Distribution", fontsize=14, fontweight="bold")
+                    ax_risk_u.grid(axis="y", linestyle="--", alpha=0.4)
+                    plt.tight_layout()
+                    st.pyplot(fig_risk_u)
+                    plt.close(fig_risk_u)
+
+                    st.divider()
+                    st.subheader("🛡️ Portfolio Risk by Insurance Status")
+                    insurance_risk_u = pd.crosstab(portfolio["Health_Insurance"], portfolio["Risk_Level"])
+                    st.dataframe(insurance_risk_u, use_container_width=True)
+
+                    left_u, right_u = st.columns(2)
+                    with left_u:
+                        portfolio_percentage_u = (insurance_risk_u.div(insurance_risk_u.sum(axis=1), axis=0) * 100).round(2)
+                        st.write("**Within-insurance-group percentage**")
+                        st.dataframe(portfolio_percentage_u, use_container_width=True)
+                    with right_u:
+                        fig_ur, ax_ur = plt.subplots(figsize=(8, 5))
+                        insurance_risk_u.plot(kind="bar", ax=ax_ur, edgecolor="black")
+                        ax_ur.set_xlabel("Health Insurance Status")
+                        ax_ur.set_ylabel("Number of Members")
+                        ax_ur.set_title("Predicted CKD Risk by Insurance Status", fontsize=14, fontweight="bold")
+                        ax_ur.grid(axis="y", alpha=0.3)
+                        plt.xticks(rotation=0)
+                        plt.tight_layout()
+                        st.pyplot(fig_ur)
+                        plt.close(fig_ur)
+
+                    st.info("This upload fallback changes only the data source for Insurance Analytics; the original shared evaluation path remains unchanged.")
+
+                except Exception as upload_error:
+                    st.error(f"Unable to use the uploaded evaluation dataset: {upload_error}")
+
+        elif "Health_Insurance" not in x_valid.columns:
+
+            st.error(
+                "Health_Insurance is missing from the validation feature set."
             )
 
+        else:
 
-        # ---------------------------------------------------------------------
-        # CREATE RISK GROUP
-        # ---------------------------------------------------------------------
+            portfolio = x_valid.copy()
 
-        if "Health_Insurance" in insurance_analysis.columns:
+            portfolio["Predicted_CKD"] = y_pred_svm
 
-            insurance_analysis["Risk_Group"] = (
+            portfolio["Predicted_CKD"] = portfolio["Predicted_CKD"].replace({
+                0: "Low CKD Risk",
+                1: "High CKD Risk"
+            })
 
-                insurance_analysis[
-                    "Predicted_CKD"
-                ].astype(str)
+            portfolio["Health_Insurance"] = portfolio["Health_Insurance"].replace({
+                0: "No Insurance",
+                1: "Has Insurance"
+            })
 
+            portfolio["Risk_Level"] = portfolio["Predicted_CKD"].replace({
+                "Low CKD Risk": "Low Risk",
+                "High CKD Risk": "High Risk"
+            })
+
+            portfolio["Risk_Group"] = (
+                portfolio["Predicted_CKD"].astype(str)
                 + " | "
-
-                + insurance_analysis[
-                    "Health_Insurance"
-                ].astype(str)
-
+                + portfolio["Health_Insurance"].astype(str)
             )
 
-
-        # =========================================================================
-        # SECTION 10.3 : INSURANCE × CKD RISK SUMMARY
-        # =========================================================================
-
-        st.divider()
-
-        st.subheader(
-            "📊 Insurance and CKD Risk Summary"
-        )
-
-
-        if "Health_Insurance" in insurance_analysis.columns:
-
-            insured_count = (
-                insurance_analysis[
-                    "Health_Insurance"
-                ]
-                .eq("Has Insurance")
-                .sum()
-            )
-
-
-            uninsured_count = (
-                insurance_analysis[
-                    "Health_Insurance"
-                ]
-                .eq("No Insurance")
-                .sum()
-            )
-
-
-            high_risk_count = (
-                insurance_analysis[
-                    "Predicted_CKD"
-                ]
-                .eq("High CKD Risk")
-                .sum()
-            )
-
-
-            summary_col1, \
-            summary_col2, \
-            summary_col3 = st.columns(3)
-
-
-            with summary_col1:
-
-                st.metric(
-                    "Has Insurance",
-                    f"{insured_count:,}"
-                )
-
-
-            with summary_col2:
-
-                st.metric(
-                    "No Insurance",
-                    f"{uninsured_count:,}"
-                )
-
-
-            with summary_col3:
-
-                st.metric(
-                    "High CKD Risk",
-                    f"{high_risk_count:,}"
-                )
-
-
-        # =========================================================================
-        # SECTION 10.4 : INSURANCE STATUS DISTRIBUTION
-        # =========================================================================
-
-        if "Health_Insurance" in insurance_analysis.columns:
+            # ---------------------------------------------------------------------
+            # KPI SUMMARY
+            # ---------------------------------------------------------------------
 
             st.divider()
+            st.subheader("📊 Insurance Portfolio Summary")
 
-            st.subheader(
-                "🛡️ Health Insurance Distribution"
-            )
+            total_members = len(portfolio)
+            high_risk = (portfolio["Risk_Level"] == "High Risk").sum()
+            low_risk = (portfolio["Risk_Level"] == "Low Risk").sum()
+            insured = (portfolio["Health_Insurance"] == "Has Insurance").sum()
+            uninsured = (portfolio["Health_Insurance"] == "No Insurance").sum()
 
+            c1, c2, c3, c4, c5 = st.columns(5)
 
-            insurance_counts = (
-                insurance_analysis[
-                    "Health_Insurance"
-                ]
-                .value_counts()
-            )
+            with c1:
+                st.metric("Total Members", f"{total_members:,}")
+            with c2:
+                st.metric("Low Risk", f"{low_risk:,}")
+            with c3:
+                st.metric("High Risk", f"{high_risk:,}")
+            with c4:
+                st.metric("Insured", f"{insured:,}")
+            with c5:
+                st.metric("Uninsured", f"{uninsured:,}")
 
-
-            fig_insurance_dist = px.bar(
-                x=insurance_counts.index,
-                y=insurance_counts.values,
-                color=insurance_counts.index,
-                color_discrete_sequence=["#2563EB", "#F59E0B", "#10B981", "#8B5CF6", "#EC4899", "#06B6D4"],
-                labels={"x": "Health Insurance Status", "y": "Number of Patients"},
-                title="Health Insurance Distribution"
-            )
-            fig_insurance_dist.update_layout(height=450, showlegend=False)
-            st.plotly_chart(fig_insurance_dist, use_container_width=True)
-
-
-        # =========================================================================
-        # SECTION 10.5 : CKD RISK × INSURANCE
-        # =========================================================================
-
-        if "Health_Insurance" in insurance_analysis.columns:
+            # ---------------------------------------------------------------------
+            # NOTEBOOK RISK DISTRIBUTION
+            # ---------------------------------------------------------------------
 
             st.divider()
+            st.subheader("📈 Portfolio Risk Distribution")
 
-            st.subheader(
-                "⚠️ CKD Risk by Insurance Status"
+            risk_distribution = (
+                portfolio["Risk_Level"].value_counts().reset_index()
             )
+            risk_distribution.columns = ["Risk Level", "Members"]
 
-
-            insurance_risk_table = pd.crosstab(
-                insurance_analysis[
-                    "Health_Insurance"
-                ],
-                insurance_analysis[
-                    "Predicted_CKD"
-                ]
-            )
-
-
-            st.dataframe(
-                insurance_risk_table,
-                use_container_width=True
-            )
-
-
-            fig_insurance_risk, ax_insurance_risk = plt.subplots(
-                figsize=(10, 6)
-            )
-
-
-            insurance_risk_table.plot(
-                kind="bar",
-                ax=ax_insurance_risk,
+            fig_risk, ax_risk = plt.subplots(figsize=(8, 5))
+            ax_risk.bar(
+                risk_distribution["Risk Level"],
+                risk_distribution["Members"],
                 edgecolor="black"
             )
-
-
-            ax_insurance_risk.set_xlabel(
-                "Health Insurance Status",
-                fontsize=12
-            )
-
-
-            ax_insurance_risk.set_ylabel(
-                "Number of Patients",
-                fontsize=12
-            )
-
-
-            ax_insurance_risk.set_title(
-                "Predicted CKD Risk by Insurance Status",
-                fontsize=15,
+            ax_risk.set_xlabel("Risk Level")
+            ax_risk.set_ylabel("Number of Members")
+            ax_risk.set_title(
+                "Portfolio Risk Distribution",
+                fontsize=14,
                 fontweight="bold"
             )
-
-
-            ax_insurance_risk.legend(
-                title="Predicted CKD"
-            )
-
-
-            ax_insurance_risk.grid(
-                axis="y",
-                alpha=0.3
-            )
-
-
-            plt.xticks(
-                rotation=0
-            )
-
-
+            ax_risk.grid(axis="y", linestyle="--", alpha=0.4)
             plt.tight_layout()
+            st.pyplot(fig_risk)
+            plt.close(fig_risk)
 
-
-            st.pyplot(
-                fig_insurance_risk
-            )
-
-
-            plt.close(
-                fig_insurance_risk
-            )
-
-
-        # =========================================================================
-        # SECTION 10.6 : RISK GROUP DISTRIBUTION
-        # =========================================================================
-
-        if "Risk_Group" in insurance_analysis.columns:
+            # ---------------------------------------------------------------------
+            # NOTEBOOK INSURANCE × RISK
+            # ---------------------------------------------------------------------
 
             st.divider()
+            st.subheader("🛡️ Portfolio Risk by Insurance Status")
 
-            st.subheader(
-                "🎯 Insurance-Based CKD Risk Groups"
+            insurance_risk = pd.crosstab(
+                portfolio["Health_Insurance"],
+                portfolio["Risk_Level"]
             )
 
+            portfolio_percentage = (
+                insurance_risk.div(insurance_risk.sum(axis=1), axis=0) * 100
+            ).round(2)
 
-            risk_group_counts = (
-                insurance_analysis[
-                    "Risk_Group"
-                ]
-                .value_counts()
+            left, right = st.columns(2)
+
+            with left:
+                st.dataframe(
+                    insurance_risk,
+                    use_container_width=True
+                )
+
+            with right:
+                st.dataframe(
+                    portfolio_percentage,
+                    use_container_width=True
+                )
+
+            fig_stacked, ax_stacked = plt.subplots(figsize=(9, 5))
+            insurance_risk.plot(
+                kind="bar",
+                stacked=True,
+                ax=ax_stacked,
+                edgecolor="black"
             )
-
-
-            fig_risk_group, ax_risk_group = plt.subplots(
-                figsize=(11, 6)
-            )
-
-
-            ax_risk_group.bar(
-                risk_group_counts.index,
-                risk_group_counts.values,
-                edgecolor="black",
-                linewidth=0.8
-            )
-
-
-            ax_risk_group.set_xlabel(
-                "Risk Group",
-                fontsize=12
-            )
-
-
-            ax_risk_group.set_ylabel(
-                "Number of Patients",
-                fontsize=12
-            )
-
-
-            ax_risk_group.set_title(
-                "CKD Risk Groups by Insurance Status",
-                fontsize=15,
+            ax_stacked.set_title(
+                "Portfolio Risk by Insurance Status",
+                fontsize=14,
                 fontweight="bold"
             )
-
-
-            ax_risk_group.tick_params(
-                axis="x",
-                rotation=20
-            )
-
-
-            ax_risk_group.grid(
-                axis="y",
-                alpha=0.3
-            )
-
-
+            ax_stacked.set_xlabel("Health Insurance")
+            ax_stacked.set_ylabel("Members")
+            ax_stacked.tick_params(axis="x", rotation=0)
+            ax_stacked.grid(axis="y", linestyle="--", alpha=0.4)
             plt.tight_layout()
+            st.pyplot(fig_stacked)
+            plt.close(fig_stacked)
 
+            # ---------------------------------------------------------------------
+            # NOTEBOOK CIRCULAR / EXECUTIVE SUNBURST
+            # ---------------------------------------------------------------------
 
-            st.pyplot(
-                fig_risk_group
+            st.divider()
+            st.subheader("⭕ Executive Insurance Portfolio — Circular Analysis")
+            st.caption(
+                "This is the circular Sunburst visualisation from the notebook, "
+                "integrated into the Insurance Analytics tab."
             )
 
+            sunburst_columns = [
+                "Country",
+                "Health_Insurance",
+                "Predicted_CKD",
+                "Risk_Level",
+                "Socioeconomic_Status"
+            ]
 
-            plt.close(
-                fig_risk_group
-            )
+            if all(column in portfolio.columns for column in sunburst_columns):
 
+                dashboard = portfolio.dropna(
+                    subset=sunburst_columns
+                ).copy()
+
+                for column in sunburst_columns:
+                    dashboard[column] = dashboard[column].astype(str)
+
+                fig_sunburst = px.sunburst(
+                    dashboard,
+                    path=[
+                        "Country",
+                        "Health_Insurance",
+                        "Predicted_CKD",
+                        "Risk_Level",
+                        "Socioeconomic_Status"
+                    ],
+                    color="Risk_Level",
+                    color_discrete_map={
+                        "Low Risk": "#2ECC71",
+                        "High Risk": "#E74C3C"
+                    },
+                    hover_data={
+                        "Age": True,
+                        "BMI": ":.1f",
+                        "Annual_Household_Income_USD": ":,.0f"
+                    },
+                    maxdepth=5,
+                    title="<b>Executive Insurance Portfolio Analysis</b>"
+                )
+
+                fig_sunburst.update_traces(
+                    textinfo="label+percent parent",
+                    insidetextorientation="radial",
+                    hovertemplate=(
+                        "<b>%{label}</b><br>"
+                        "Members: %{value}<br>"
+                        "Parent: %{percentParent:.1%}<br>"
+                        "Root: %{percentRoot:.1%}<extra></extra>"
+                    )
+                )
+
+                fig_sunburst.update_layout(
+                    template="plotly_white",
+                    height=700,
+                    margin=dict(l=20, r=20, t=70, b=20),
+                    font=dict(family="Arial", size=14),
+                    title_x=0.5
+                )
+
+                st.plotly_chart(
+                    fig_sunburst,
+                    use_container_width=True
+                )
+
+            else:
+
+                missing_sunburst = [
+                    column
+                    for column in sunburst_columns
+                    if column not in portfolio.columns
+                ]
+
+                st.warning(
+                    "The notebook Sunburst requires these missing columns: "
+                    + ", ".join(missing_sunburst)
+                )
+
+            # ---------------------------------------------------------------------
+            # NOTEBOOK PORTFOLIO RISK LANDSCAPE
+            # ---------------------------------------------------------------------
+
+            st.divider()
+            st.subheader("🌐 Insurance Portfolio Risk Landscape")
+
+            landscape_columns = [
+                "Annual_Household_Income_USD",
+                "Age",
+                "BMI",
+                "Lifestyle_Risk",
+                "Metabolic_Risk",
+                "CV_Risk",
+                "Risk_Level",
+                "Country",
+                "Health_Insurance"
+            ]
+
+            if all(column in portfolio.columns for column in landscape_columns):
+
+                fig_landscape = px.scatter(
+                    portfolio,
+                    x="Annual_Household_Income_USD",
+                    y="Age",
+                    size="BMI",
+                    color="Risk_Group",
+                    color_discrete_map={"Low Risk": "#2563EB", "High Risk": "#DC2626", "Low": "#10B981", "High": "#F59E0B"},
+                    symbol="Health_Insurance",
+                    hover_name="Country",
+                    hover_data={
+                        "Lifestyle_Risk": True,
+                        "Metabolic_Risk": True,
+                        "CV_Risk": True,
+                        "Risk_Level": True,
+                        "BMI": ":.1f",
+                        "Annual_Household_Income_USD": ":,.0f",
+                        "Age": True
+                    },
+                    title="<b>Insurance Portfolio Risk Landscape</b>"
+                )
+
+                fig_landscape.update_layout(
+                    template="plotly_white",
+                    height=650,
+                    title_x=0.5
+                )
+
+                st.plotly_chart(
+                    fig_landscape,
+                    use_container_width=True
+                )
+
+            else:
+
+                missing_landscape = [
+                    column
+                    for column in landscape_columns
+                    if column not in portfolio.columns
+                ]
+
+                st.warning(
+                    "Portfolio Risk Landscape unavailable. Missing: "
+                    + ", ".join(missing_landscape)
+                )
+
+            # ---------------------------------------------------------------------
+            # NOTEBOOK PORTFOLIO TABLE
+            # ---------------------------------------------------------------------
+
+            st.divider()
+            st.subheader("📋 Insurance Risk Portfolio")
 
             st.dataframe(
-                risk_group_counts
-                .rename(
-                    "Patient Count"
-                )
-                .reset_index()
-                .rename(
-                    columns={
-                        "index": "Risk Group"
-                    }
-                ),
+                portfolio[[
+                    "Predicted_CKD",
+                    "Health_Insurance",
+                    "Risk_Level",
+                    "Risk_Group"
+                ]].head(100),
                 use_container_width=True,
                 hide_index=True
             )
 
+            # ---------------------------------------------------------------------
+            # HIGH-RISK UNINSURED SEGMENT
+            # ---------------------------------------------------------------------
 
-        # =========================================================================
-        # SECTION 10.7 : INCOME × AGE × BMI RISK LANDSCAPE
-        # =========================================================================
-
-        required_portfolio_columns = [
-
-            "Annual_Household_Income_USD",
-
-            "Age",
-
-            "BMI",
-
-            "Risk_Group"
-
-        ]
-
-
-        portfolio_columns_available = all(
-            column in insurance_analysis.columns
-            for column in required_portfolio_columns
-        )
-
-
-        if portfolio_columns_available:
+            high_risk_uninsured = (
+                (portfolio["Health_Insurance"] == "No Insurance")
+                & (portfolio["Predicted_CKD"] == "High CKD Risk")
+            ).sum()
 
             st.divider()
+            st.subheader("⚠️ High-Risk / No-Insurance Segment")
 
-            st.subheader(
-                "🌐 Insurance Portfolio Risk Landscape"
+            st.metric(
+                "High CKD Risk + No Insurance",
+                f"{high_risk_uninsured:,}"
             )
 
             st.caption(
-                """
-                Household income is shown against age, while BMI represents
-                the relative size of each observation and Risk Group
-                identifies the CKD-insurance segment.
-                """
+                "This segment is shown for population-level analytical "
+                "segmentation only and must not be used to deny or restrict "
+                "health insurance or healthcare access."
             )
 
+    # =============================================================================
+    # END OF SECTION 11 : INSURANCE ANALYTICS TAB
+    # =============================================================================
 
-            fig_portfolio, ax_portfolio = plt.subplots(
-                figsize=(12, 8)
-            )
+    # SECTION 12 : ABOUT MODEL TAB
+        # =============================================================================
 
-
-            risk_groups = (
-                insurance_analysis[
-                    "Risk_Group"
-                ]
-                .dropna()
-                .unique()
-            )
+if main_early_screening:
+    with tab_about:
 
 
-            for risk_group in risk_groups:
+        st.header(
+        "📚 About the Early Screening Model"
+        )
 
-                subset = insurance_analysis[
-                    insurance_analysis[
-                        "Risk_Group"
-                    ] == risk_group
-                ]
+        st.write(
+        """
+        Final deployed model (Early Screening section):
 
+        **Linear Support Vector Machine (SVM)**
 
-                ax_portfolio.scatter(
-                    subset[
-                        "Annual_Household_Income_USD"
-                    ],
-
-                    subset[
-                        "Age"
-                    ],
-
-                    s=(
-                        subset[
-                            "BMI"
-                        ].clip(
-                            lower=10
-                        )
-                        * 8
-                    ),
-
-                    alpha=0.55,
-
-                    label=risk_group
-                )
-
-
-            ax_portfolio.set_xlabel(
-                "Annual Household Income (USD)",
-                fontsize=12
-            )
-
-
-            ax_portfolio.set_ylabel(
-                "Age",
-                fontsize=12
-            )
-
-
-            ax_portfolio.set_title(
-                "Insurance Portfolio Risk Landscape",
-                fontsize=15,
-                fontweight="bold"
-            )
-
-
-            ax_portfolio.legend(
-                title="Risk Group",
-                bbox_to_anchor=(
-                    1.02,
-                    1
-                ),
-                loc="upper left"
-            )
-
-
-            ax_portfolio.grid(
-                alpha=0.25
-            )
-
-
-            plt.tight_layout()
-
-
-            st.pyplot(
-                fig_portfolio
-            )
-
-
-            plt.close(
-                fig_portfolio
-            )
-
-
-        else:
-
-            st.info(
-                """
-                The portfolio risk landscape requires:
-
-                Annual_Household_Income_USD
-                Age
-                BMI
-                Risk_Group
-                """
-            )
-
-
-        # =========================================================================
-        # SECTION 10.8 : INSURANCE RISK TABLE
-        # =========================================================================
-
-        st.divider()
-
-        st.subheader(
-            "📋 Insurance Risk Portfolio"
+        This section contains information about the dataset,
+        preprocessing, feature engineering, model development,
+        validation and limitations for the CKD **early-screening**
+        (risk) model. The **Clinical Screening** section (Section 2 of this
+        app) documents the CKD **severity** model separately.
+        """
         )
 
 
-        display_columns = [
-
-            "Predicted_CKD",
-
-            "Health_Insurance",
-
-            "Risk_Group"
-
-        ]
-
-
-        display_columns = [
-
-            column
-
-            for column in display_columns
-
-            if column in insurance_analysis.columns
-
-        ]
-
-
-        if display_columns:
-
-            st.dataframe(
-                insurance_analysis[
-                    display_columns
-                ].head(100),
-                use_container_width=True,
-                hide_index=True
-            )
+        # =============================================================================
+        # END OF STEP 0
+        # =============================================================================
+        #
+        # STEP 0 OBJECTIVE:
+        #
+        # ✓ Create the Streamlit application
+        # ✓ Create the complete tab structure
+        # ✓ Keep every module separated
+        # ✓ Establish the final dashboard architecture
+        #
+        # NEXT:
+        #
+        # STEP 1 — HOME TAB + APPLICATION DESIGN
+        #
+        # =============================================================================
 
 
     # =============================================================================
-
-
-# =============================================================================
-# STEP 10B : EXISTING EARLY-SCREENING INTERACTIVE INSURANCE ANALYSIS
-# =============================================================================
-# The original Insurance analysis is retained. Figures are cached in
-# session_state so Streamlit does not rebuild every Plotly object on every
-# rerun (especially when the user changes an unrelated input).
-
-with tab_insurance:
-
-    st.title("🏥 Insurance Analytics")
-
-    st.write(
-        "Insurance portfolio analysis connected to the final CKD Linear SVM "
-        "validation predictions."
-    )
-
-    if not evaluation_loaded:
-
-        st.warning(
-            "⚠️ Insurance Analytics is waiting for the CKD evaluation dataset. "
-            "The deployed SVM model is available, but the population-level "
-            "validation dataset required for this module was not found in the "
-            "deployed repository."
-        )
-        st.info(
-            "Add one of these files beside app.py (or in a reachable data folder): "
-            "Training_CKD_dataset.csv, Testing_CKD_dataset.csv, or "
-            "CKD_Risk_Progression_Dataset_2026.csv. Then redeploy the app."
-        )
-        with st.expander("Technical details"):
-            st.code(str(evaluation_error))
-
-    elif "Health_Insurance" not in x_valid.columns:
-
-        st.error(
-            "Health_Insurance is missing from the validation feature set."
-        )
-
-    else:
-
-        portfolio = x_valid.copy()
-
-        portfolio["Predicted_CKD"] = y_pred_svm
-
-        portfolio["Predicted_CKD"] = portfolio["Predicted_CKD"].replace({
-            0: "Low CKD Risk",
-            1: "High CKD Risk"
-        })
-
-        portfolio["Health_Insurance"] = portfolio["Health_Insurance"].replace({
-            0: "No Insurance",
-            1: "Has Insurance"
-        })
-
-        portfolio["Risk_Level"] = portfolio["Predicted_CKD"].replace({
-            "Low CKD Risk": "Low Risk",
-            "High CKD Risk": "High Risk"
-        })
-
-        portfolio["Risk_Group"] = (
-            portfolio["Predicted_CKD"].astype(str)
-            + " | "
-            + portfolio["Health_Insurance"].astype(str)
-        )
-
-        # ---------------------------------------------------------------------
-        # KPI SUMMARY
-        # ---------------------------------------------------------------------
-
-        st.divider()
-        st.subheader("📊 Insurance Portfolio Summary")
-
-        total_members = len(portfolio)
-        high_risk = (portfolio["Risk_Level"] == "High Risk").sum()
-        low_risk = (portfolio["Risk_Level"] == "Low Risk").sum()
-        insured = (portfolio["Health_Insurance"] == "Has Insurance").sum()
-        uninsured = (portfolio["Health_Insurance"] == "No Insurance").sum()
-
-        c1, c2, c3, c4, c5 = st.columns(5)
-
-        with c1:
-            st.metric("Total Members", f"{total_members:,}")
-        with c2:
-            st.metric("Low Risk", f"{low_risk:,}")
-        with c3:
-            st.metric("High Risk", f"{high_risk:,}")
-        with c4:
-            st.metric("Insured", f"{insured:,}")
-        with c5:
-            st.metric("Uninsured", f"{uninsured:,}")
-
-        # ---------------------------------------------------------------------
-        # NOTEBOOK RISK DISTRIBUTION
-        # ---------------------------------------------------------------------
-
-        st.divider()
-        st.subheader("📈 Portfolio Risk Distribution")
-
-        risk_distribution = (
-            portfolio["Risk_Level"].value_counts().reset_index()
-        )
-        risk_distribution.columns = ["Risk Level", "Members"]
-
-        fig_risk, ax_risk = plt.subplots(figsize=(8, 5))
-        ax_risk.bar(
-            risk_distribution["Risk Level"],
-            risk_distribution["Members"],
-            edgecolor="black"
-        )
-        ax_risk.set_xlabel("Risk Level")
-        ax_risk.set_ylabel("Number of Members")
-        ax_risk.set_title(
-            "Portfolio Risk Distribution",
-            fontsize=14,
-            fontweight="bold"
-        )
-        ax_risk.grid(axis="y", linestyle="--", alpha=0.4)
-        plt.tight_layout()
-        st.pyplot(fig_risk)
-        plt.close(fig_risk)
-
-        # ---------------------------------------------------------------------
-        # NOTEBOOK INSURANCE × RISK
-        # ---------------------------------------------------------------------
-
-        st.divider()
-        st.subheader("🛡️ Portfolio Risk by Insurance Status")
-
-        insurance_risk = pd.crosstab(
-            portfolio["Health_Insurance"],
-            portfolio["Risk_Level"]
-        )
-
-        portfolio_percentage = (
-            insurance_risk.div(insurance_risk.sum(axis=1), axis=0) * 100
-        ).round(2)
-
-        left, right = st.columns(2)
-
-        with left:
-            st.dataframe(
-                insurance_risk,
-                use_container_width=True
-            )
-
-        with right:
-            st.dataframe(
-                portfolio_percentage,
-                use_container_width=True
-            )
-
-        fig_stacked, ax_stacked = plt.subplots(figsize=(9, 5))
-        insurance_risk.plot(
-            kind="bar",
-            stacked=True,
-            ax=ax_stacked,
-            edgecolor="black"
-        )
-        ax_stacked.set_title(
-            "Portfolio Risk by Insurance Status",
-            fontsize=14,
-            fontweight="bold"
-        )
-        ax_stacked.set_xlabel("Health Insurance")
-        ax_stacked.set_ylabel("Members")
-        ax_stacked.tick_params(axis="x", rotation=0)
-        ax_stacked.grid(axis="y", linestyle="--", alpha=0.4)
-        plt.tight_layout()
-        st.pyplot(fig_stacked)
-        plt.close(fig_stacked)
-
-        # ---------------------------------------------------------------------
-        # NOTEBOOK CIRCULAR / EXECUTIVE SUNBURST
-        # ---------------------------------------------------------------------
-
-        st.divider()
-        st.subheader("⭕ Executive Insurance Portfolio — Circular Analysis")
-        st.caption(
-            "This is the circular Sunburst visualisation from the notebook, "
-            "integrated into the Insurance Analytics tab."
-        )
-
-        sunburst_columns = [
-            "Country",
-            "Health_Insurance",
-            "Predicted_CKD",
-            "Risk_Level",
-            "Socioeconomic_Status"
-        ]
-
-        if all(column in portfolio.columns for column in sunburst_columns):
-
-            dashboard = portfolio.dropna(
-                subset=sunburst_columns
-            ).copy()
-
-            for column in sunburst_columns:
-                dashboard[column] = dashboard[column].astype(str)
-
-            fig_sunburst = px.sunburst(
-                dashboard,
-                path=[
-                    "Country",
-                    "Health_Insurance",
-                    "Predicted_CKD",
-                    "Risk_Level",
-                    "Socioeconomic_Status"
-                ],
-                color="Risk_Level",
-                color_discrete_map={
-                    "Low Risk": "#2ECC71",
-                    "High Risk": "#E74C3C"
-                },
-                hover_data={
-                    "Age": True,
-                    "BMI": ":.1f",
-                    "Annual_Household_Income_USD": ":,.0f"
-                },
-                maxdepth=5,
-                title="<b>Executive Insurance Portfolio Analysis</b>"
-            )
-
-            fig_sunburst.update_traces(
-                textinfo="label+percent parent",
-                insidetextorientation="radial",
-                hovertemplate=(
-                    "<b>%{label}</b><br>"
-                    "Members: %{value}<br>"
-                    "Parent: %{percentParent:.1%}<br>"
-                    "Root: %{percentRoot:.1%}<extra></extra>"
-                )
-            )
-
-            fig_sunburst.update_layout(
-                template="plotly_white",
-                height=700,
-                margin=dict(l=20, r=20, t=70, b=20),
-                font=dict(family="Arial", size=14),
-                title_x=0.5
-            )
-
-            st.plotly_chart(
-                fig_sunburst,
-                use_container_width=True
-            )
-
-        else:
-
-            missing_sunburst = [
-                column
-                for column in sunburst_columns
-                if column not in portfolio.columns
-            ]
-
-            st.warning(
-                "The notebook Sunburst requires these missing columns: "
-                + ", ".join(missing_sunburst)
-            )
-
-        # ---------------------------------------------------------------------
-        # NOTEBOOK PORTFOLIO RISK LANDSCAPE
-        # ---------------------------------------------------------------------
-
-        st.divider()
-        st.subheader("🌐 Insurance Portfolio Risk Landscape")
-
-        landscape_columns = [
-            "Annual_Household_Income_USD",
-            "Age",
-            "BMI",
-            "Lifestyle_Risk",
-            "Metabolic_Risk",
-            "CV_Risk",
-            "Risk_Level",
-            "Country",
-            "Health_Insurance"
-        ]
-
-        if all(column in portfolio.columns for column in landscape_columns):
-
-            fig_landscape = px.scatter(
-                portfolio,
-                x="Annual_Household_Income_USD",
-                y="Age",
-                size="BMI",
-                color="Risk_Group",
-                color_discrete_map={"Low Risk": "#2563EB", "High Risk": "#DC2626", "Low": "#10B981", "High": "#F59E0B"},
-                symbol="Health_Insurance",
-                hover_name="Country",
-                hover_data={
-                    "Lifestyle_Risk": True,
-                    "Metabolic_Risk": True,
-                    "CV_Risk": True,
-                    "Risk_Level": True,
-                    "BMI": ":.1f",
-                    "Annual_Household_Income_USD": ":,.0f",
-                    "Age": True
-                },
-                title="<b>Insurance Portfolio Risk Landscape</b>"
-            )
-
-            fig_landscape.update_layout(
-                template="plotly_white",
-                height=650,
-                title_x=0.5
-            )
-
-            st.plotly_chart(
-                fig_landscape,
-                use_container_width=True
-            )
-
-        else:
-
-            missing_landscape = [
-                column
-                for column in landscape_columns
-                if column not in portfolio.columns
-            ]
-
-            st.warning(
-                "Portfolio Risk Landscape unavailable. Missing: "
-                + ", ".join(missing_landscape)
-            )
-
-        # ---------------------------------------------------------------------
-        # NOTEBOOK PORTFOLIO TABLE
-        # ---------------------------------------------------------------------
-
-        st.divider()
-        st.subheader("📋 Insurance Risk Portfolio")
-
-        st.dataframe(
-            portfolio[[
-                "Predicted_CKD",
-                "Health_Insurance",
-                "Risk_Level",
-                "Risk_Group"
-            ]].head(100),
-            use_container_width=True,
-            hide_index=True
-        )
-
-        # ---------------------------------------------------------------------
-        # HIGH-RISK UNINSURED SEGMENT
-        # ---------------------------------------------------------------------
-
-        high_risk_uninsured = (
-            (portfolio["Health_Insurance"] == "No Insurance")
-            & (portfolio["Predicted_CKD"] == "High CKD Risk")
-        ).sum()
-
-        st.divider()
-        st.subheader("⚠️ High-Risk / No-Insurance Segment")
-
-        st.metric(
-            "High CKD Risk + No Insurance",
-            f"{high_risk_uninsured:,}"
-        )
-
-        st.caption(
-            "This segment is shown for population-level analytical "
-            "segmentation only and must not be used to deny or restrict "
-            "health insurance or healthcare access."
-        )
-
-# =============================================================================
-# END OF SECTION 11 : INSURANCE ANALYTICS TAB
-# =============================================================================
-
-# SECTION 12 : ABOUT MODEL TAB
-    # =============================================================================
-
-with tab_about:
-
-
-    st.header(
-    "📚 About the Early Screening Model"
-    )
-
-    st.write(
-    """
-    Final deployed model (Early Screening section):
-
-    **Linear Support Vector Machine (SVM)**
-
-    This section contains information about the dataset,
-    preprocessing, feature engineering, model development,
-    validation and limitations for the CKD **early-screening**
-    (risk) model. The **Clinical Screening** section (Section 2 of this
-    app) documents the CKD **severity** model separately.
-    """
-    )
-
-
-    # =============================================================================
-    # END OF STEP 0
+    # SECTION 13 : CKD CLINICAL SEVERITY SCREENING & WORKINGS
     # =============================================================================
     #
-    # STEP 0 OBJECTIVE:
+    # Dedicated Second-Stage Workflow integrated from:
+    # 'Severity model Final Draft.ipynb'
     #
-    # ✓ Create the Streamlit application
-    # ✓ Create the complete tab structure
-    # ✓ Keep every module separated
-    # ✓ Establish the final dashboard architecture
-    #
-    # NEXT:
-    #
-    # STEP 1 — HOME TAB + APPLICATION DESIGN
-    #
+    # Architecture:
+    # - Target: 4-Class CKD Severity:
+    #     * 0: Healthy (KDIGO Normal / No CKD)
+    #     * 1: Mild CKD (KDIGO Stage 1 & Stage 2)
+    #     * 2: Moderate CKD (KDIGO Stage 3a & Stage 3b)
+    #     * 3: Severe CKD (KDIGO Stage 4 & Stage 5)
+    # - Deployed Model: Multi-class XGBoost Classifier (Trained on SMOTE Data)
+    # - Candidate Models Evaluated: Ordinal Logistic Regression, Random Forest, XGBoost
+    # - Features: 75 Clinical, Demographic, Vital & Laboratory Biomarkers
     # =============================================================================
 
-
-# =============================================================================
-# SECTION 13 : CKD CLINICAL SEVERITY SCREENING & WORKINGS
-# =============================================================================
-#
-# Final Clinical Severity workflow integrated from:
-#     "Severity model Final Draft(2).ipynb"
-#
-# Final notebook workflow:
-#   1. Target = 4-class CKD severity
-#        0 -> Healthy
-#        1 -> Mild CKD (Stage 1-2)
-#        2 -> Moderate CKD (Stage 3a-3b)
-#        3 -> Severe CKD (Stage 4-5)
-#   2. Original feature space = 75 variables
-#   3. Train/test split = 80/20, stratified, random_state=42
-#   4. Numerical imputation = median
-#   5. Categorical imputation = most frequent
-#   6. One-hot encoding (drop_first=True) -> 94 encoded features
-#   7. StandardScaler
-#   8. SMOTE applied ONLY to the training set (k_neighbors=3)
-#   9. Candidate models:
-#        - Ordinal Logistic Regression
-#        - Random Forest
-#        - XGBoost
-#  10. Final deployed model = XGBoost
-#
-# The code below is intentionally isolated from the Early Screening workflow.
-# =============================================================================
-
-CLINICAL_ASSET_DIR = Path(__file__).resolve().parent / "assets"
-
+CLINICAL_ASSET_DIR = Path(__file__).parent / "assets"
 
 def clinical_asset(filename):
     paths = [
         CLINICAL_ASSET_DIR / filename,
         Path.cwd() / "assets" / filename,
         Path(r"D:\project\data\raw\CKD_API\assets") / filename,
-        Path(r"C:\Users\SAMSUNG\.gemini\antigravity\worktrees\CKD_API\check_rate_limit_status\assets") / filename,
+        Path(r"C:\Users\SAMSUNG\.gemini\antigravity\worktrees\CKD_API\check_rate_limit_status\assets") / filename
     ]
     for p in paths:
-        if p.exists() and p.is_file():
+        if p.exists():
             return str(p)
     return None
 
 
-# -------------------------------------------------------------------------
-# Final notebook feature schema: exactly 75 raw clinical features.
-# -------------------------------------------------------------------------
-SEVERITY_FEATURE_NAMES = [
-    "Age", "Sex", "Ethnicity", "Country", "Residence_Type",
-    "Education_Level", "Socioeconomic_Status", "Height_cm", "Weight_kg",
-    "BMI", "Waist_Circumference_cm", "Body_Fat_Percentage", "Smoking_Status",
-    "Alcohol_Consumption", "Physical_Activity_Level", "Exercise_Hours_Per_Week",
-    "Daily_Steps", "Water_Intake_L", "Sodium_Intake_mg", "Fast_Food_Frequency_Per_Week",
-    "Sleep_Duration_Hours", "Stress_Level", "Diabetes", "Hypertension",
-    "Cardiovascular_Disease", "Heart_Failure", "Hyperlipidemia", "Kidney_Stones",
-    "Recurrent_UTI", "Autoimmune_Disease", "Family_History_CKD", "Obesity",
-    "Heart_Rate", "Respiratory_Rate", "Oxygen_Saturation", "Systolic_BP",
-    "Diastolic_BP", "Blood_Pressure_Category", "Serum_Creatinine", "eGFR",
-    "Blood_Urea_Nitrogen", "Albumin", "Urine_ACR", "Urine_Protein", "HbA1c",
-    "Fasting_Glucose", "Hemoglobin", "Sodium", "Potassium", "Calcium",
-    "Phosphorus", "Uric_Acid", "Total_Cholesterol", "HDL", "LDL", "Triglycerides",
-    "CRP", "ACE_Inhibitor", "ARB", "Diabetes_Medication", "Statin", "Diuretic",
-    "NSAID_Usage", "Medication_Adherence", "Number_of_Medications", "Frailty_Index",
-    "Frailty_Category", "Hospital_Visits", "Emergency_Visits", "Specialist_Visits",
-    "Annual_Checkups", "Health_Insurance", "Annual_Household_Income_USD",
-    "Annual_Medical_Cost_USD", "Employment_Status",
-]
-
-SEVERITY_CATEGORICAL_FEATURES = [
-    "Sex", "Ethnicity", "Country", "Residence_Type", "Education_Level",
-    "Socioeconomic_Status", "Smoking_Status", "Alcohol_Consumption",
-    "Physical_Activity_Level", "Stress_Level", "Blood_Pressure_Category",
-    "Frailty_Category", "Employment_Status",
-]
-
-SEVERITY_CATEGORICAL_OPTIONS = {
-    "Sex": ["Female", "Male"],
-    "Ethnicity": ["White", "Hispanic", "Black", "Asian", "Other"],
-    "Country": ["USA", "UK", "India", "Canada", "Australia", "Other"],
-    "Residence_Type": ["Urban", "Rural"],
-    "Education_Level": [
-        "High School", "Some College", "Bachelor's",
-        "Less than High School", "Graduate"
-    ],
-    "Socioeconomic_Status": ["Middle", "High", "Low"],
-    "Smoking_Status": ["Never", "Former", "Current"],
-    # The notebook audited NaNs in this variable and imputed the mode
-    # ("Moderate") before encoding.
-    "Alcohol_Consumption": ["Moderate", "Heavy"],
-    "Physical_Activity_Level": ["Sedentary", "Light", "Moderate", "Active"],
-    "Stress_Level": ["Low", "Moderate", "High"],
-    "Blood_Pressure_Category": [
-        "Normal", "Elevated", "Hypertension Stage 1",
-        "Hypertension Stage 2", "Hypertensive Crisis"
-    ],
-    "Frailty_Category": ["Fit", "Vulnerable", "Frail"],
-    "Employment_Status": ["Employed", "Unemployed/Retired"],
-}
-
-SEVERITY_BINARY_FEATURES = {
-    "Diabetes", "Hypertension", "Cardiovascular_Disease", "Heart_Failure",
-    "Hyperlipidemia", "Kidney_Stones", "Recurrent_UTI", "Autoimmune_Disease",
-    "Family_History_CKD", "Obesity", "ACE_Inhibitor", "ARB",
-    "Diabetes_Medication", "Statin", "Diuretic", "NSAID_Usage",
-    "Medication_Adherence", "Health_Insurance",
-}
-
-# Reasonable intake bounds; the trained scaler/imputer remain authoritative.
-SEVERITY_NUMERIC_SPECS = {
-    "Age": (18, 105, 52, 1),
-    "Height_cm": (120.0, 220.0, 175.0, 0.5),
-    "Weight_kg": (30.0, 250.0, 78.0, 0.5),
-    "BMI": (10.0, 70.0, 25.5, 0.1),
-    "Waist_Circumference_cm": (40.0, 180.0, 88.0, 0.5),
-    "Body_Fat_Percentage": (2.0, 60.0, 22.0, 0.1),
-    "Exercise_Hours_Per_Week": (0.0, 30.0, 3.5, 0.5),
-    "Daily_Steps": (0, 50000, 7500, 500),
-    "Water_Intake_L": (0.0, 10.0, 2.5, 0.1),
-    "Sodium_Intake_mg": (0, 10000, 2400, 50),
-    "Fast_Food_Frequency_Per_Week": (0, 21, 1, 1),
-    "Sleep_Duration_Hours": (0.0, 24.0, 7.5, 0.5),
-    "Heart_Rate": (20, 220, 72, 1),
-    "Respiratory_Rate": (5, 60, 16, 1),
-    "Oxygen_Saturation": (50.0, 100.0, 98.5, 0.1),
-    "Systolic_BP": (60, 260, 118, 1),
-    "Diastolic_BP": (30, 160, 76, 1),
-    "Serum_Creatinine": (0.1, 20.0, 0.85, 0.05),
-    "eGFR": (1.0, 200.0, 105.0, 1.0),
-    "Blood_Urea_Nitrogen": (1.0, 200.0, 12.0, 1.0),
-    "Albumin": (1.0, 8.0, 4.5, 0.1),
-    "Urine_ACR": (0.0, 5000.0, 10.0, 5.0),
-    "Urine_Protein": (0.0, 3000.0, 30.0, 5.0),
-    "HbA1c": (3.0, 20.0, 5.2, 0.1),
-    "Fasting_Glucose": (20.0, 500.0, 88.0, 1.0),
-    "Hemoglobin": (4.0, 22.0, 15.0, 0.1),
-    "Sodium": (100.0, 180.0, 140.0, 0.5),
-    "Potassium": (1.0, 10.0, 4.2, 0.1),
-    "Calcium": (3.0, 20.0, 9.5, 0.1),
-    "Phosphorus": (1.0, 20.0, 3.4, 0.1),
-    "Uric_Acid": (1.0, 20.0, 5.0, 0.1),
-    "Total_Cholesterol": (50, 600, 175, 1),
-    "HDL": (5.0, 150.0, 55.0, 0.5),
-    "LDL": (1.0, 400.0, 95.0, 0.5),
-    "Triglycerides": (20, 1500, 120, 1),
-    "CRP": (0.0, 100.0, 0.8, 0.1),
-    "Number_of_Medications": (0, 30, 0, 1),
-    "Frailty_Index": (0.0, 1.0, 0.05, 0.01),
-    "Hospital_Visits": (0, 50, 0, 1),
-    "Emergency_Visits": (0, 50, 0, 1),
-    "Specialist_Visits": (0, 50, 0, 1),
-    "Annual_Checkups": (0, 20, 1, 1),
-    "Annual_Household_Income_USD": (0, 1000000, 65000, 5000),
-    "Annual_Medical_Cost_USD": (0, 500000, 1200, 500),
-}
-
-SEVERITY_NUMERIC_FEATURES = [
-    f for f in SEVERITY_FEATURE_NAMES
-    if f not in SEVERITY_CATEGORICAL_FEATURES
-]
-
-# Modes reported by the final notebook audit.
-SEVERITY_CATEGORICAL_MODES = {
-    "Sex": "Female",
-    "Ethnicity": "White",
-    "Country": "USA",
-    "Residence_Type": "Urban",
-    "Education_Level": "High School",
-    "Socioeconomic_Status": "Middle",
-    "Smoking_Status": "Never",
-    "Alcohol_Consumption": "Moderate",
-    "Physical_Activity_Level": "Sedentary",
-    "Stress_Level": "Moderate",
-    "Blood_Pressure_Category": "Normal",
-    "Frailty_Category": "Frail",
-    "Employment_Status": "Employed",
-}
-
-
 @st.cache_resource
 def load_severity_model_bundle():
-    """
-    Load the exact final notebook artifacts.
-
-    The notebook explicitly saved:
-      - CKD_Severity_XGBoost.pkl
-      - scaler.pkl
-      - num_imputer.pkl
-
-    It did not save categorical metadata, so the app can safely derive the
-    94-column encoded schema from the audited 13 categorical variables when
-    encoded_feature_names.pkl/cat_cols.pkl are not present.
-    """
     dirs_to_check = [
         Path(__file__).resolve().parent,
         Path.cwd(),
-        Path(__file__).resolve().parent / "models",
-        Path(__file__).resolve().parent / "assets",
         Path(r"D:\project\data\raw\CKD_API"),
-        Path(r"C:\Users\SAMSUNG\.gemini\antigravity\worktrees\CKD_API\check_rate_limit_status"),
+        Path(r"C:\Users\SAMSUNG\.gemini\antigravity\worktrees\CKD_API\check_rate_limit_status")
     ]
-
-    for base in dirs_to_check:
-        model_path = base / "CKD_Severity_XGBoost.pkl"
-        scaler_path = base / "scaler.pkl"
-        imputer_path = base / "num_imputer.pkl"
-
-        if model_path.exists() and scaler_path.exists() and imputer_path.exists():
-            model = joblib.load(model_path)
-            scaler_obj = joblib.load(scaler_path)
-            imputer_obj = joblib.load(imputer_path)
-
-            cat_cols = None
-            encoded_cols = None
-
-            if (base / "cat_cols.pkl").exists():
-                cat_cols = joblib.load(base / "cat_cols.pkl")
-            if (base / "encoded_feature_names.pkl").exists():
-                encoded_cols = joblib.load(base / "encoded_feature_names.pkl")
-
+    for b in dirs_to_check:
+        m_p = b / "CKD_Severity_XGBoost.pkl"
+        s_p = b / "scaler.pkl"
+        i_p = b / "num_imputer.pkl"
+        if m_p.exists() and s_p.exists() and i_p.exists():
+            model = joblib.load(m_p)
+            scaler_obj = joblib.load(s_p)
+            imputer_obj = joblib.load(i_p)
+            cat_cols = joblib.load(b / "cat_cols.pkl") if (b / "cat_cols.pkl").exists() else None
+            encoded_cols = joblib.load(b / "encoded_feature_names.pkl") if (b / "encoded_feature_names.pkl").exists() else None
             return model, scaler_obj, imputer_obj, cat_cols, encoded_cols
-
-    raise FileNotFoundError(
-        "Clinical severity model files are missing. "
-        "Expected CKD_Severity_XGBoost.pkl, scaler.pkl and num_imputer.pkl."
-    )
-
-
-def build_severity_encoded_columns():
-    """
-    Reconstruct the exact 94-column pandas get_dummies(drop_first=True)
-    schema used by the notebook when encoded metadata was not persisted.
-    """
-    dummy_columns = []
-    for col in SEVERITY_CATEGORICAL_FEATURES:
-        levels = sorted(SEVERITY_CATEGORICAL_OPTIONS[col])
-        dummy_columns.extend([f"{col}_{level}" for level in levels[1:]])
-
-    numeric_columns = [c for c in SEVERITY_FEATURE_NAMES if c not in SEVERITY_CATEGORICAL_FEATURES]
-    return numeric_columns + dummy_columns
-
-
-SEVERITY_CLASS_NAMES = {
-    0: "Healthy",
-    1: "Mild CKD",
-    2: "Moderate CKD",
-    3: "Severe CKD",
-}
-
-SEVERITY_CLASS_COLORS = {
-    0: PLOT_COLORS.get("Healthy", "#16A34A"),
-    1: PLOT_COLORS.get("Mild CKD", "#F59E0B"),
-    2: PLOT_COLORS.get("Moderate CKD", "#F97316"),
-    3: PLOT_COLORS.get("Severe CKD", "#DC2626"),
-}
-
-SEVERITY_DESCRIPTIONS = {
-    "Healthy": (
-        "**Healthy (No CKD)**: eGFR ≥ 90 mL/min/1.73m² and the submitted renal "
-        "biomarkers are within the healthy profile represented by this model."
-    ),
-    "Mild CKD": (
-        "**Mild CKD (KDIGO Stage 1 & 2)**: eGFR 60–89 mL/min/1.73m² with "
-        "persistent kidney damage markers such as albuminuria."
-    ),
-    "Moderate CKD": (
-        "**Moderate CKD (KDIGO Stage 3a & 3b)**: eGFR 30–59 mL/min/1.73m² "
-        "with greater reduction in renal function and associated clinical burden."
-    ),
-    "Severe CKD": (
-        "**Severe CKD (KDIGO Stage 4 & 5)**: eGFR < 30 mL/min/1.73m², representing "
-        "advanced loss of kidney function."
-    ),
-}
-
-# Exact final comparison table reported by notebook Cell 52.
-SEVERITY_MODEL_RESULTS = pd.DataFrame({
-    "Model": [
-        "Ordinal Logistic Regression",
-        "Random Forest",
-        "XGBoost (Deployed)",
-    ],
-    "Accuracy": [0.9228, 0.9982, 0.9985],
-    "Weighted Precision": [0.9921, 0.9981, 0.9985],
-    "Weighted Recall": [0.9228, 0.9982, 0.9985],
-    "Weighted F1": [0.9543, 0.9980, 0.9985],
-    "Macro Precision": [0.7411, 0.9846, 0.9848],
-    "Macro Recall": [0.8859, 0.9289, 0.9557],
-    "Macro F1": [0.7372, 0.9532, 0.9692],
-    "QWK": [0.9383, 0.9986, 0.9984],
-})
-
-SEVERITY_XGB_CLASS_REPORT = pd.DataFrame({
-    "Class": ["Healthy", "Mild CKD", "Moderate CKD", "Severe CKD"],
-    "Precision": [1.00, 0.95, 1.00, 0.99],
-    "Recall": [1.00, 0.83, 1.00, 1.00],
-    "F1 Score": [1.00, 0.88, 1.00, 1.00],
-    "Support": [32589, 220, 6750, 441],
-})
-
-SEVERITY_XGB_CONFUSION = np.array([
-    [32582, 6, 1, 0],
-    [36, 182, 2, 0],
-    [7, 4, 6736, 3],
-    [0, 0, 1, 440],
-])
-
-SEVERITY_TOP_FEATURES = pd.DataFrame({
-    "Feature": [
-        "eGFR", "Annual_Medical_Cost_USD", "Frailty_Category_Frail",
-        "Urine_ACR", "Specialist_Visits", "Urine_Protein", "ACE_Inhibitor",
-        "Frailty_Category_Vulnerable", "Socioeconomic_Status_Middle",
-        "Emergency_Visits", "Employment_Status_Unemployed/Retired",
-        "Frailty_Index", "Physical_Activity_Level_Moderate", "Obesity",
-        "Cardiovascular_Disease", "Physical_Activity_Level_Sedentary",
-        "Ethnicity_Other", "Annual_Checkups", "Diuretic", "Exercise_Hours_Per_Week",
-    ],
-    "Importance": [
-        0.371882, 0.290273, 0.143191, 0.021105, 0.019591, 0.017908,
-        0.010669, 0.009975, 0.008857, 0.006801, 0.006272, 0.005889,
-        0.005725, 0.005530, 0.005474, 0.005062, 0.004573, 0.004307,
-        0.003525, 0.003187,
-    ],
-})
-
-SEVERITY_NOTEBOOK_RESULTS = {
-    "multiclass_roc_auc": 0.9995525968905183,
-    "cv_f1_weighted_mean": 0.9995684965136048,
-    "cv_f1_weighted_std": 0.0006528353370828046,
-    "learning_curve_validation_final": 0.99878001,
-    "smote_train_rows": 521436,
-    "raw_features": 75,
-    "encoded_features": 94,
-}
+    raise FileNotFoundError("Clinical severity model files are missing.")
 
 
 @st.cache_data
@@ -6798,11 +6708,10 @@ def load_severity_analytics_payload():
         Path(__file__).resolve().parent / "severity_analytics.json",
         Path.cwd() / "severity_analytics.json",
         Path(r"D:\project\data\raw\CKD_API\severity_analytics.json"),
-        Path(r"C:\Users\SAMSUNG\.gemini\antigravity\worktrees\CKD_API\check_rate_limit_status\severity_analytics.json"),
+        Path(r"C:\Users\SAMSUNG\.gemini\antigravity\worktrees\CKD_API\check_rate_limit_status\severity_analytics.json")
     ]
-
     for p in paths:
-        if p.exists() and p.is_file():
+        if p.exists():
             try:
                 import json
                 with open(p, "r", encoding="utf-8") as f:
@@ -6812,42 +6721,82 @@ def load_severity_analytics_payload():
     return None
 
 
+SEVERITY_CLASS_NAMES = {
+    0: "Healthy",
+    1: "Mild CKD",
+    2: "Moderate CKD",
+    3: "Severe CKD"
+}
+
+SEVERITY_CLASS_COLORS = {
+    0: "#2ecc71",
+    1: "#f1c40f",
+    2: "#e67e22",
+    3: "#e74c3c"
+}
+
+SEVERITY_DESCRIPTIONS = {
+    "Healthy": (
+        "**Healthy (No CKD)**: Renal filtration (eGFR ≥ 90 mL/min/1.73m²) and biomarker levels "
+        "are within normal physiologic ranges without evidence of kidney damage or pathological albuminuria."
+    ),
+    "Mild CKD": (
+        "**Mild CKD (KDIGO Stage 1 & 2)**: Normal or mildly decreased GFR (60–89 mL/min/1.73m²) with "
+        "persistent structural kidney damage or microalbuminuria (ACR 30–300 mg/g). Early clinical intervention "
+        "and strict risk factor management are recommended."
+    ),
+    "Moderate CKD": (
+        "**Moderate CKD (KDIGO Stage 3a & 3b)**: Substantial reduction in renal filtration (eGFR 30–59 mL/min/1.73m²) "
+        "with active metabolic complications, hypertension, and proteinuria. Active clinical surveillance and "
+        "nephrology co-management are strongly advised."
+    ),
+    "Severe CKD": (
+        "**Severe CKD (KDIGO Stage 4 & 5)**: Severe reduction in renal function (eGFR < 30 mL/min/1.73m²) approaching "
+        "end-stage kidney disease (ESKD). Urgent nephrology referral, vascular access planning, and renal "
+        "replacement therapy (RRT / dialysis / transplantation) preparation are indicated."
+    )
+}
+
+SEVERITY_MODEL_RESULTS = pd.DataFrame({
+    "Model": [
+        "Ordinal Logistic Regression",
+        "Random Forest",
+        "XGBoost (Deployed)"
+    ],
+    "Accuracy": [0.9228, 0.9982, 0.9985],
+    "Weighted Precision": [0.9921, 0.9981, 0.9985],
+    "Weighted Recall": [0.9228, 0.9982, 0.9985],
+    "Weighted F1": [0.9543, 0.9980, 0.9985],
+    "Macro Precision": [0.7411, 0.9846, 0.9848],
+    "Macro Recall": [0.8859, 0.9289, 0.9557],
+    "Macro F1": [0.7372, 0.9532, 0.9692],
+    "QWK": [0.9383, 0.9986, 0.9984]
+})
+
+
 def render_severity_visual_stepper_ui(current_stage_label):
     stages = [
-        ("Healthy", "0 · Healthy", SEVERITY_CLASS_COLORS[0], "🟢"),
-        ("Mild CKD", "1 · Mild CKD", SEVERITY_CLASS_COLORS[1], "🟡"),
-        ("Moderate CKD", "2 · Moderate CKD", SEVERITY_CLASS_COLORS[2], "🟠"),
-        ("Severe CKD", "3 · Severe CKD", SEVERITY_CLASS_COLORS[3], "🔴"),
+        ("Healthy", "0: Healthy", "#2ecc71", "🟢"),
+        ("Mild CKD", "1: Mild (Stg 1-2)", "#f1c40f", "🟡"),
+        ("Moderate CKD", "2: Moderate (Stg 3a-3b)", "#e67e22", "🟠"),
+        ("Severe CKD", "3: Severe (Stg 4-5)", "#e74c3c", "🔴"),
     ]
-
-    st.subheader("🚦 CKD Severity Stage Map")
     cols = st.columns(4)
-
     for idx, (stg_key, stg_title, stg_color, icon) in enumerate(stages):
+        is_active = current_stage_label == stg_key
+        bg = stg_color if is_active else "#f1f3f5"
+        fg = "#ffffff" if is_active else "#4b5563"
+        border = f"2px solid {stg_color}" if is_active else "1px solid #d8dde3"
+        shadow = "0 8px 18px rgba(35,7,14,.12)" if is_active else "none"
         with cols[idx]:
-            is_active = current_stage_label == stg_key
-            bg = stg_color if is_active else "#fff8f8"
-            fg = "#ffffff" if is_active else "#651321"
-            border = f"2px solid {stg_color}" if is_active else "1px solid #e5c8cd"
-            shadow = "0 10px 24px rgba(101,19,33,.13)" if is_active else "none"
-
             st.markdown(
                 f"""
-                <div style="
-                    background:{bg};
-                    color:{fg};
-                    border:{border};
-                    border-radius:16px;
-                    padding:15px 10px;
-                    text-align:center;
-                    box-shadow:{shadow};
-                    min-height:102px;
-                    display:flex;
-                    flex-direction:column;
-                    justify-content:center;">
-                    <div style="font-size:1.45em;">{icon}</div>
+                <div style="background:{bg};color:{fg};border:{border};border-radius:16px;
+                            padding:15px 10px;text-align:center;min-height:108px;display:flex;
+                            flex-direction:column;justify-content:center;box-shadow:{shadow};">
+                    <div style="font-size:1.35em;">{icon}</div>
                     <div style="font-weight:800;margin-top:4px;">{stg_title}</div>
-                    <div style="font-size:.74em;opacity:.9;">
+                    <div style="font-size:.72em;opacity:.9;margin-top:3px;">
                         {"ACTIVE CLASS" if is_active else f"Class {idx}"}
                     </div>
                 </div>
@@ -6856,121 +6805,37 @@ def render_severity_visual_stepper_ui(current_stage_label):
             )
 
 
-def _coerce_default_numeric(value, feature):
-    lo, hi, fallback, _ = SEVERITY_NUMERIC_SPECS[feature]
-    try:
-        value = float(value)
-    except (TypeError, ValueError):
-        value = float(fallback)
-    value = max(float(lo), min(float(hi), value))
-    return int(round(value)) if feature in {
-        "Age", "Daily_Steps", "Fast_Food_Frequency_Per_Week",
-        "Heart_Rate", "Respiratory_Rate", "Systolic_BP", "Diastolic_BP",
-        "Total_Cholesterol", "Triglycerides", "Number_of_Medications",
-        "Hospital_Visits", "Emergency_Visits", "Specialist_Visits",
-        "Annual_Checkups", "Annual_Household_Income_USD", "Annual_Medical_Cost_USD",
-    } else float(value)
-
-
-def _prepare_severity_features(input_df, imputer_obj, cat_cols_saved, encoded_cols_saved):
-    df = input_df.copy()
-
-    # Keep exactly the 75 raw features used by the notebook.
-    for col in SEVERITY_FEATURE_NAMES:
-        if col not in df.columns:
-            if col in SEVERITY_CATEGORICAL_FEATURES:
-                df[col] = SEVERITY_CATEGORICAL_MODES[col]
-            elif col in SEVERITY_NUMERIC_SPECS:
-                df[col] = SEVERITY_NUMERIC_SPECS[col][2]
-            else:
-                df[col] = 0
-
-    df = df[SEVERITY_FEATURE_NAMES].copy()
-
-    # Numerical imputation exactly as notebook: median.
-    numeric_for_imputation = [
-        c for c in SEVERITY_NUMERIC_FEATURES
-        if c in getattr(imputer_obj, "feature_names_in_", SEVERITY_NUMERIC_FEATURES)
-    ]
-    if numeric_for_imputation:
-        df[numeric_for_imputation] = imputer_obj.transform(df[numeric_for_imputation])
-
-    # The final notebook did not save categorical metadata. Its audited
-    # categorical modes are therefore used when a carried profile has NaN.
-    active_cat_cols = list(cat_cols_saved) if cat_cols_saved is not None else SEVERITY_CATEGORICAL_FEATURES
-    active_cat_cols = [c for c in active_cat_cols if c in df.columns]
-
-    for c in active_cat_cols:
-        df[c] = df[c].where(df[c].notna(), SEVERITY_CATEGORICAL_MODES.get(c))
-        if c in SEVERITY_CATEGORICAL_OPTIONS:
-            df[c] = df[c].apply(
-                lambda x: x if x in SEVERITY_CATEGORICAL_OPTIONS[c]
-                else SEVERITY_CATEGORICAL_MODES[c]
-            )
-
-    # Exact notebook transform: pd.get_dummies(..., drop_first=True).
-    df = pd.get_dummies(df, columns=active_cat_cols, drop_first=True)
-
-    expected_encoded = (
-        list(encoded_cols_saved)
-        if encoded_cols_saved is not None
-        else build_severity_encoded_columns()
-    )
-
-    for col in expected_encoded:
-        if col not in df.columns:
-            df[col] = 0
-
-    extra_cols = [c for c in df.columns if c not in expected_encoded]
-    if extra_cols:
-        df = df.drop(columns=extra_cols)
-
-    df = df[expected_encoded]
-    return df
-
-
-# =============================================================================
-# CLINICAL SCREENING SECTION
-# =============================================================================
-
 if main_clinical_screening:
-    has_early_pred = "prediction" in st.session_state
+    has_early_pred = "prediction" in st.session_state and "input_data" in st.session_state
 
     if has_early_pred:
-        st.success(
-            "✅ **Stage 1: Early Screening completed** — "
-            "Clinical Screening is unlocked and can inherit the submitted profile."
-        )
+        st.success("✅ **Stage 1: Early Screening completed** — Clinical Screening is unlocked as a separate 75-feature assessment!")
     else:
-        st.info(
-            "ℹ️ **Stage 2: Clinical Screening** can be opened independently. "
-            "Preset clinical profiles are available for demonstration/testing."
-        )
+        st.info("ℹ️ **Stage 2: Clinical Screening** is designed to follow Stage 1 Early Screening. Enter this pathway's clinical information separately in the 75-feature intake form below.")
 
     st.title("🏥 Stage 2: Clinical Screening & CKD Severity Assessment")
-    st.caption(
-        "Four-class CKD severity classification using the final XGBoost workflow "
-        "from the Severity Model Final Draft."
+    st.caption("KDIGO-Aligned Multi-Class CKD Severity Classification & Comprehensive Clinical Analytics (from Severity Model Final Draft)")
+
+    tab_clin_predict, \
+    tab_clin_stats, \
+    tab_clin_plots = st.tabs(
+        [
+            "🩺 a) Prediction & Severity Outputs",
+            "📊 b) Statistical Analysis",
+            "📈 c) Exploratory & Diagnostic Plots"
+        ]
     )
 
-    tab_clin_predict, tab_clin_stats, tab_clin_plots = st.tabs([
-        "🩺 Prediction & Severity Outputs",
-        "📊 Statistical Analysis",
-        "📈 Exploratory & Diagnostic Plots",
-    ])
-
     # -------------------------------------------------------------------------
-    # TAB 1 : PREDICTION & SEVERITY OUTPUTS
+    # TAB 1: PREDICTION & SEVERITY OUTPUTS
     # -------------------------------------------------------------------------
     with tab_clin_predict:
         st.header("🩺 Multi-Class CKD Severity Screening & Biomarker Profiling")
         st.write(
             """
-            This stage executes the final **XGBoost CKD Severity Classifier**.
-            The notebook defines four ordered severity classes:
-            **Healthy (0), Mild CKD (1), Moderate CKD (2), Severe CKD (3)**.
-            The model was trained on the SMOTE-balanced training cohort and
-            evaluated on the untouched original test set.
+            This stage executes the multi-class **XGBoost Severity Classifier** developed in 
+            `Severity model Final Draft.ipynb`. It grades patient condition across 4 severity tiers:
+            **Healthy (0) / Mild CKD (1) / Moderate CKD (2) / Severe CKD (3)**.
             """
         )
 
@@ -6979,882 +6844,574 @@ if main_clinical_screening:
             SEVERITY_MODEL_READY = True
         except Exception as err:
             SEVERITY_MODEL_READY = False
-            st.error("Clinical severity model artifacts could not be loaded.")
-            st.caption(str(err))
+            st.error(f"Could not load severity model artifacts: {err}")
 
         if SEVERITY_MODEL_READY:
             st.subheader("⚡ Quick Clinical Preset Profiles")
-            st.write("Presets populate the full 75-feature intake form for rapid demonstration.")
-
+            st.write("Select a standardized clinical persona to populate the 75-feature intake form:")
+        
             p_col1, p_col2, p_col3, p_col4 = st.columns(4)
             with p_col1:
-                if st.button("🟢 Healthy Control", use_container_width=True, key="btn_preset_healthy_v2"):
-                    st.session_state["active_severity_preset"] = "healthy"
+                if st.button("🟢 Healthy Control", use_container_width=True, key="btn_preset_healthy"):
+                    st.session_state["active_preset"] = "healthy"
             with p_col2:
-                if st.button("🟡 Mild CKD · Stage 1-2", use_container_width=True, key="btn_preset_mild_v2"):
-                    st.session_state["active_severity_preset"] = "mild"
+                if st.button("🟡 Mild CKD (Stage 1-2)", use_container_width=True, key="btn_preset_mild"):
+                    st.session_state["active_preset"] = "mild"
             with p_col3:
-                if st.button("🟠 Moderate CKD · Stage 3a-3b", use_container_width=True, key="btn_preset_mod_v2"):
-                    st.session_state["active_severity_preset"] = "moderate"
+                if st.button("🟠 Moderate CKD (Stage 3a-3b)", use_container_width=True, key="btn_preset_mod"):
+                    st.session_state["active_preset"] = "moderate"
             with p_col4:
-                if st.button("🔴 Severe CKD · Stage 4-5", use_container_width=True, key="btn_preset_sev_v2"):
-                    st.session_state["active_severity_preset"] = "severe"
+                if st.button("🔴 Severe CKD (Stage 4-5)", use_container_width=True, key="btn_preset_sev"):
+                    st.session_state["active_preset"] = "severe"
 
-            preset_active = st.session_state.get("active_severity_preset", "healthy")
+            preset_active = st.session_state.get("active_preset", "healthy")
 
+            # Independent Clinical Screening intake. Early Screening completion
+            # only unlocks this pathway; its inputs are not copied here.
             default_inputs = {
-                "Age": 52, "Sex": "Male", "Ethnicity": "White", "Country": "USA",
-                "Residence_Type": "Urban", "Education_Level": "Bachelor's",
-                "Socioeconomic_Status": "Middle", "Height_cm": 175.0, "Weight_kg": 78.0,
-                "BMI": 25.5, "Waist_Circumference_cm": 88.0, "Body_Fat_Percentage": 22.0,
-                "Smoking_Status": "Never", "Alcohol_Consumption": "Moderate",
-                "Physical_Activity_Level": "Moderate", "Exercise_Hours_Per_Week": 3.5,
-                "Daily_Steps": 7500, "Water_Intake_L": 2.5, "Sodium_Intake_mg": 2400,
-                "Fast_Food_Frequency_Per_Week": 1, "Sleep_Duration_Hours": 7.5,
-                "Stress_Level": "Low", "Diabetes": 0, "Hypertension": 0,
-                "Cardiovascular_Disease": 0, "Heart_Failure": 0, "Hyperlipidemia": 0,
-                "Kidney_Stones": 0, "Recurrent_UTI": 0, "Autoimmune_Disease": 0,
-                "Family_History_CKD": 0, "Obesity": 0, "Heart_Rate": 72,
-                "Respiratory_Rate": 16, "Oxygen_Saturation": 98.5, "Systolic_BP": 118,
-                "Diastolic_BP": 76, "Blood_Pressure_Category": "Normal",
-                "Serum_Creatinine": 0.85, "eGFR": 105.0, "Blood_Urea_Nitrogen": 12.0,
-                "Albumin": 4.5, "Urine_ACR": 10.0, "Urine_Protein": 30.0,
-                "HbA1c": 5.2, "Fasting_Glucose": 88.0, "Hemoglobin": 15.0,
-                "Sodium": 140.0, "Potassium": 4.2, "Calcium": 9.5, "Phosphorus": 3.4,
-                "Uric_Acid": 5.0, "Total_Cholesterol": 175, "HDL": 55.0,
-                "LDL": 95.0, "Triglycerides": 120, "CRP": 0.8, "ACE_Inhibitor": 0,
-                "ARB": 0, "Diabetes_Medication": 0, "Statin": 0, "Diuretic": 0,
-                "NSAID_Usage": 0, "Medication_Adherence": 1,
-                "Number_of_Medications": 0, "Frailty_Index": 0.05,
-                "Frailty_Category": "Fit", "Hospital_Visits": 0, "Emergency_Visits": 0,
+                "Age": 52, "Sex": "Male", "Ethnicity": "White", "Country": "USA", "Residence_Type": "Urban",
+                "Education_Level": "Bachelor's", "Socioeconomic_Status": "Middle", "Height_cm": 175.0,
+                "Weight_kg": 78.0, "BMI": 25.5, "Waist_Circumference_cm": 88.0, "Body_Fat_Percentage": 22.0,
+                "Smoking_Status": "Never", "Alcohol_Consumption": "Moderate", "Physical_Activity_Level": "Moderate",
+                "Exercise_Hours_Per_Week": 3.5, "Daily_Steps": 7500, "Water_Intake_L": 2.5, "Sodium_Intake_mg": 2400,
+                "Fast_Food_Frequency_Per_Week": 1, "Sleep_Duration_Hours": 7.5, "Stress_Level": "Low",
+                "Diabetes": 0, "Hypertension": 0, "Cardiovascular_Disease": 0, "Heart_Failure": 0,
+                "Hyperlipidemia": 0, "Kidney_Stones": 0, "Recurrent_UTI": 0, "Autoimmune_Disease": 0,
+                "Family_History_CKD": 0, "Obesity": 0, "Heart_Rate": 72, "Respiratory_Rate": 16,
+                "Oxygen_Saturation": 98.5, "Systolic_BP": 118, "Diastolic_BP": 76,
+                "Blood_Pressure_Category": "Normal", "Serum_Creatinine": 0.85, "eGFR": 105.0,
+                "Blood_Urea_Nitrogen": 12.0, "Albumin": 4.5, "Urine_ACR": 10.0, "Urine_Protein": 30.0,
+                "HbA1c": 5.2, "Fasting_Glucose": 88.0, "Hemoglobin": 15.0, "Sodium": 140.0,
+                "Potassium": 4.2, "Calcium": 9.5, "Phosphorus": 3.4, "Uric_Acid": 5.0,
+                "Total_Cholesterol": 175, "HDL": 55.0, "LDL": 95.0, "Triglycerides": 120,
+                "CRP": 0.8, "ACE_Inhibitor": 0, "ARB": 0, "Diabetes_Medication": 0, "Statin": 0,
+                "Diuretic": 0, "NSAID_Usage": 0, "Medication_Adherence": 1, "Number_of_Medications": 0,
+                "Frailty_Index": 0.05, "Frailty_Category": "Fit", "Hospital_Visits": 0, "Emergency_Visits": 0,
                 "Specialist_Visits": 0, "Annual_Checkups": 1, "Health_Insurance": 1,
-                "Annual_Household_Income_USD": 65000, "Annual_Medical_Cost_USD": 1200,
-                "Employment_Status": "Employed",
+                "Annual_Household_Income_USD": 65000, "Annual_Medical_Cost_USD": 1200, "Employment_Status": "Employed"
             }
-
-            # Carry forward any overlapping variables from the independent
-            # Early Screening module, without making the severity workflow
-            # dependent on it.
-            early_df = st.session_state.get("input_data")
-            if early_df is not None and len(early_df) > 0:
-                for key in default_inputs:
-                    if key in early_df.columns:
-                        value = early_df.iloc[0][key]
-                        if pd.notna(value):
-                            default_inputs[key] = value
 
             if preset_active == "mild":
                 default_inputs.update({
-                    "Age": 58, "eGFR": 72.0, "Serum_Creatinine": 1.25,
-                    "Blood_Urea_Nitrogen": 18.0, "Urine_ACR": 45.0,
-                    "Urine_Protein": 120.0, "Systolic_BP": 134, "Diastolic_BP": 84,
-                    "Blood_Pressure_Category": "Hypertension Stage 1",
-                    "Hypertension": 1, "HbA1c": 5.9, "Fasting_Glucose": 108.0,
-                    "Albumin": 4.1, "CRP": 1.8
+                    "Age": 58, "eGFR": 72.0, "Serum_Creatinine": 1.25, "Blood_Urea_Nitrogen": 18.0,
+                    "Urine_ACR": 45.0, "Urine_Protein": 120.0, "Systolic_BP": 134, "Diastolic_BP": 84,
+                    "Blood_Pressure_Category": "Hypertension Stage 1", "Hypertension": 1, "HbA1c": 5.9,
+                    "Fasting_Glucose": 108.0, "Albumin": 4.1, "CRP": 1.8
                 })
             elif preset_active == "moderate":
                 default_inputs.update({
-                    "Age": 66, "eGFR": 44.0, "Serum_Creatinine": 1.95,
-                    "Blood_Urea_Nitrogen": 28.0, "Urine_ACR": 180.0,
-                    "Urine_Protein": 280.0, "Systolic_BP": 144, "Diastolic_BP": 88,
-                    "Blood_Pressure_Category": "Hypertension Stage 2",
-                    "Hypertension": 1, "Diabetes": 1, "HbA1c": 7.4,
-                    "Fasting_Glucose": 142.0, "Albumin": 3.6, "Hemoglobin": 11.5,
-                    "Potassium": 4.8, "Phosphorus": 4.6, "Uric_Acid": 7.8,
-                    "ACE_Inhibitor": 1, "Statin": 1, "Number_of_Medications": 3,
-                    "CRP": 3.4, "Frailty_Category": "Vulnerable"
+                    "Age": 66, "eGFR": 44.0, "Serum_Creatinine": 1.95, "Blood_Urea_Nitrogen": 28.0,
+                    "Urine_ACR": 180.0, "Urine_Protein": 280.0, "Systolic_BP": 144, "Diastolic_BP": 88,
+                    "Blood_Pressure_Category": "Hypertension Stage 2", "Hypertension": 1, "Diabetes": 1,
+                    "HbA1c": 7.4, "Fasting_Glucose": 142.0, "Albumin": 3.6, "Hemoglobin": 11.5,
+                    "Potassium": 4.8, "Phosphorus": 4.6, "Uric_Acid": 7.8, "ACE_Inhibitor": 1,
+                    "Statin": 1, "Number_of_Medications": 3, "CRP": 3.4, "Frailty_Category": "Vulnerable"
                 })
             elif preset_active == "severe":
                 default_inputs.update({
-                    "Age": 72, "eGFR": 18.0, "Serum_Creatinine": 3.90,
-                    "Blood_Urea_Nitrogen": 54.0, "Urine_ACR": 680.0,
-                    "Urine_Protein": 650.0, "Systolic_BP": 165, "Diastolic_BP": 96,
-                    "Blood_Pressure_Category": "Hypertension Stage 2",
-                    "Hypertension": 1, "Diabetes": 1, "Cardiovascular_Disease": 1,
-                    "Heart_Failure": 1, "HbA1c": 8.5, "Fasting_Glucose": 178.0,
-                    "Albumin": 3.1, "Hemoglobin": 9.2, "Potassium": 5.4,
-                    "Phosphorus": 5.8, "Uric_Acid": 9.2, "ACE_Inhibitor": 1,
-                    "Diuretic": 1, "Statin": 1, "Number_of_Medications": 6,
-                    "CRP": 6.8, "Frailty_Category": "Frail", "Hospital_Visits": 3,
-                    "Emergency_Visits": 2
+                    "Age": 72, "eGFR": 18.0, "Serum_Creatinine": 3.90, "Blood_Urea_Nitrogen": 54.0,
+                    "Urine_ACR": 680.0, "Urine_Protein": 650.0, "Systolic_BP": 165, "Diastolic_BP": 96,
+                    "Blood_Pressure_Category": "Hypertension Stage 2", "Hypertension": 1, "Diabetes": 1,
+                    "Cardiovascular_Disease": 1, "Heart_Failure": 1, "HbA1c": 8.5, "Fasting_Glucose": 178.0,
+                    "Albumin": 3.1, "Hemoglobin": 9.2, "Potassium": 5.4, "Phosphorus": 5.8,
+                    "Uric_Acid": 9.2, "ACE_Inhibitor": 1, "Diuretic": 1, "Statin": 1,
+                    "Number_of_Medications": 6, "CRP": 6.8, "Frailty_Category": "Frail",
+                    "Hospital_Visits": 3, "Emergency_Visits": 2
                 })
 
             st.divider()
-            st.subheader(
-                f"📋 75-Feature Clinical Intake Form "
-                f"(Active Profile: {preset_active.title()})"
-            )
+            st.subheader(f"📋 Patient Clinical Intake Form (Active Profile: {preset_active.title()})")
 
-            def render_binary_field(container, feature_name):
-                with container:
-                    value = int(default_inputs.get(feature_name, 0))
-                    value = 1 if value else 0
-                    return st.selectbox(
-                        feature_name.replace("_", " "),
-                        [0, 1],
-                        index=value,
-                        format_func=lambda x: "Yes" if x else "No",
-                        key=f"sev_input_{feature_name}",
-                    )
+            with st.form("severity_prediction_form"):
+                exp1 = st.expander("🩺 1. Renal Biomarkers & Core Labs (High Sensitivity)", expanded=True)
+                with exp1:
+                    r_c1, r_c2, r_c3 = st.columns(3)
+                    with r_c1:
+                        f_egfr = st.number_input("eGFR (mL/min/1.73m²)", 1.0, 160.0, float(default_inputs["eGFR"]), step=1.0)
+                        f_creat = st.number_input("Serum Creatinine (mg/dL)", 0.2, 15.0, float(default_inputs["Serum_Creatinine"]), step=0.05)
+                    with r_c2:
+                        f_bun = st.number_input("Blood Urea Nitrogen (mg/dL)", 1.0, 150.0, float(default_inputs["Blood_Urea_Nitrogen"]), step=1.0)
+                        f_alb = st.number_input("Serum Albumin (g/dL)", 1.0, 7.0, float(default_inputs["Albumin"]), step=0.1)
+                    with r_c3:
+                        f_uacr = st.number_input("Urine ACR (mg/g)", 0.0, 5000.0, float(default_inputs["Urine_ACR"]), step=5.0)
+                        f_uprot = st.number_input("Urine Protein (mg/dL)", 0.0, 2000.0, float(default_inputs["Urine_Protein"]), step=5.0)
 
-            def render_numeric_field(container, feature_name):
-                lo, hi, fallback, step = SEVERITY_NUMERIC_SPECS[feature_name]
-                current = _coerce_default_numeric(default_inputs.get(feature_name, fallback), feature_name)
-                with container:
-                    return st.number_input(
-                        feature_name.replace("_", " "),
-                        min_value=lo,
-                        max_value=hi,
-                        value=current,
-                        step=step,
-                        key=f"sev_input_{feature_name}",
-                    )
+                exp2 = st.expander("🩸 2. Metabolic, Electrolytes & Hematology", expanded=False)
+                with exp2:
+                    m_c1, m_c2, m_c3 = st.columns(3)
+                    with m_c1:
+                        f_hba1c = st.number_input("HbA1c (%)", 3.0, 18.0, float(default_inputs["HbA1c"]), step=0.1)
+                        f_glucose = st.number_input("Fasting Glucose (mg/dL)", 40.0, 400.0, float(default_inputs["Fasting_Glucose"]), step=1.0)
+                        f_hemo = st.number_input("Hemoglobin (g/dL)", 4.0, 22.0, float(default_inputs["Hemoglobin"]), step=0.1)
+                    with m_c2:
+                        f_na = st.number_input("Sodium (mEq/L)", 110.0, 170.0, float(default_inputs["Sodium"]), step=0.5)
+                        f_k = st.number_input("Potassium (mEq/L)", 2.0, 9.0, float(default_inputs["Potassium"]), step=0.1)
+                        f_ca = st.number_input("Calcium (mg/dL)", 4.0, 16.0, float(default_inputs["Calcium"]), step=0.1)
+                    with m_c3:
+                        f_phos = st.number_input("Phosphorus (mg/dL)", 1.0, 15.0, float(default_inputs["Phosphorus"]), step=0.1)
+                        f_uric = st.number_input("Uric Acid (mg/dL)", 1.0, 20.0, float(default_inputs["Uric_Acid"]), step=0.1)
+                        f_crp = st.number_input("C-Reactive Protein (mg/L)", 0.0, 100.0, float(default_inputs["CRP"]), step=0.1)
 
-            def render_category_field(container, feature_name):
-                options = SEVERITY_CATEGORICAL_OPTIONS[feature_name]
-                default = default_inputs.get(
-                    feature_name, SEVERITY_CATEGORICAL_MODES[feature_name]
-                )
-                if pd.isna(default) or default not in options:
-                    default = SEVERITY_CATEGORICAL_MODES[feature_name]
-                with container:
-                    return st.selectbox(
-                        feature_name.replace("_", " "),
-                        options,
-                        index=options.index(default),
-                        key=f"sev_input_{feature_name}",
-                    )
+                exp3 = st.expander("🫀 3. Cardiovascular, Vitals & Lipids", expanded=False)
+                with exp3:
+                    cv_c1, cv_c2, cv_c3 = st.columns(3)
+                    with cv_c1:
+                        f_sbp = st.number_input("Systolic BP (mmHg)", 70, 250, int(default_inputs["Systolic_BP"]))
+                        f_dbp = st.number_input("Diastolic BP (mmHg)", 40, 160, int(default_inputs["Diastolic_BP"]))
+                        bp_opts = ["Normal", "Elevated", "Hypertension Stage 1", "Hypertension Stage 2", "Hypertensive Crisis"]
+                        f_bp_cat = st.selectbox("BP Category", bp_opts, index=bp_opts.index(default_inputs["Blood_Pressure_Category"]) if default_inputs["Blood_Pressure_Category"] in bp_opts else 0)
+                    with cv_c2:
+                        f_hr = st.number_input("Heart Rate (bpm)", 30, 200, int(default_inputs["Heart_Rate"]))
+                        f_rr = st.number_input("Respiratory Rate", 8, 40, int(default_inputs["Respiratory_Rate"]))
+                        f_o2 = st.number_input("Oxygen Saturation (%)", 70.0, 100.0, float(default_inputs["Oxygen_Saturation"]))
+                    with cv_c3:
+                        f_chol = st.number_input("Total Cholesterol (mg/dL)", 50, 500, int(default_inputs["Total_Cholesterol"]))
+                        f_hdl = st.number_input("HDL (mg/dL)", 10.0, 150.0, float(default_inputs["HDL"]))
+                        f_ldl = st.number_input("LDL (mg/dL)", 10.0, 350.0, float(default_inputs["LDL"]))
+                        f_trig = st.number_input("Triglycerides (mg/dL)", 30, 1000, int(default_inputs["Triglycerides"]))
 
-            ui_values = {}
+                exp4 = st.expander("🏥 4. Comorbidities, Medications & Clinical History", expanded=False)
+                with exp4:
+                    cm_c1, cm_c2, cm_c3 = st.columns(3)
+                    with cm_c1:
+                        f_dm = st.selectbox("Diabetes", [0, 1], format_func=lambda x: "Yes" if x else "No", index=default_inputs["Diabetes"])
+                        f_htn = st.selectbox("Hypertension", [0, 1], format_func=lambda x: "Yes" if x else "No", index=default_inputs["Hypertension"])
+                        f_cvd = st.selectbox("Cardiovascular Disease", [0, 1], format_func=lambda x: "Yes" if x else "No", index=default_inputs["Cardiovascular_Disease"])
+                        f_hf = st.selectbox("Heart Failure", [0, 1], format_func=lambda x: "Yes" if x else "No", index=default_inputs["Heart_Failure"])
+                    with cm_c2:
+                        f_hyperlip = st.selectbox("Hyperlipidemia", [0, 1], format_func=lambda x: "Yes" if x else "No", index=default_inputs["Hyperlipidemia"])
+                        f_stones = st.selectbox("Kidney Stones", [0, 1], format_func=lambda x: "Yes" if x else "No", index=default_inputs["Kidney_Stones"])
+                        f_uti = st.selectbox("Recurrent UTI", [0, 1], format_func=lambda x: "Yes" if x else "No", index=default_inputs["Recurrent_UTI"])
+                        f_autoimm = st.selectbox("Autoimmune Disease", [0, 1], format_func=lambda x: "Yes" if x else "No", index=default_inputs["Autoimmune_Disease"])
+                    with cm_c3:
+                        f_fam = st.selectbox("Family History of CKD", [0, 1], format_func=lambda x: "Yes" if x else "No", index=default_inputs["Family_History_CKD"])
+                        f_acei = st.selectbox("ACE Inhibitor Use", [0, 1], format_func=lambda x: "Yes" if x else "No", index=default_inputs["ACE_Inhibitor"])
+                        f_arb = st.selectbox("ARB Use", [0, 1], format_func=lambda x: "Yes" if x else "No", index=default_inputs["ARB"])
+                        f_statin = st.selectbox("Statin Therapy", [0, 1], format_func=lambda x: "Yes" if x else "No", index=default_inputs["Statin"])
+                        f_diur = st.selectbox("Diuretic Therapy", [0, 1], format_func=lambda x: "Yes" if x else "No", index=default_inputs["Diuretic"])
 
-            # 1) Demographic / lifestyle block
-            with st.expander("👤 1. Demographics, Anthropometry & Lifestyle", expanded=True):
-                features_block = [
-                    "Age", "Sex", "Ethnicity", "Country", "Residence_Type",
-                    "Education_Level", "Socioeconomic_Status", "Height_cm", "Weight_kg",
-                    "BMI", "Waist_Circumference_cm", "Body_Fat_Percentage",
-                    "Smoking_Status", "Alcohol_Consumption", "Physical_Activity_Level",
-                ]
-                for start in range(0, len(features_block), 3):
-                    c1, c2, c3 = st.columns(3)
-                    for container, feature_name in zip(
-                        [c1, c2, c3], features_block[start:start + 3]
-                    ):
-                        if feature_name in SEVERITY_CATEGORICAL_FEATURES:
-                            ui_values[feature_name] = render_category_field(container, feature_name)
-                        else:
-                            ui_values[feature_name] = render_numeric_field(container, feature_name)
+                exp5 = st.expander("👤 5. Demographics, Lifestyle & Utilization", expanded=False)
+                with exp5:
+                    d_c1, d_c2, d_c3 = st.columns(3)
+                    with d_c1:
+                        f_age = st.number_input("Age (Years)", 18, 105, int(default_inputs["Age"]))
+                        f_sex = st.selectbox("Sex", ["Male", "Female"], index=0 if default_inputs["Sex"] == "Male" else 1)
+                        f_bmi = st.number_input("BMI (kg/m²)", 12.0, 65.0, float(default_inputs["BMI"]))
+                        f_waist = st.number_input("Waist Circumference (cm)", 50.0, 180.0, float(default_inputs["Waist_Circumference_cm"]))
+                        f_smoke = st.selectbox("Smoking Status", ["Never", "Former", "Current"], index=["Never", "Former", "Current"].index(default_inputs["Smoking_Status"]))
+                    with d_c2:
+                        f_eth = st.selectbox("Ethnicity", ["White", "Hispanic", "Black", "Asian", "Other"], index=["White", "Hispanic", "Black", "Asian", "Other"].index(default_inputs["Ethnicity"]))
+                        f_cntry = st.selectbox("Country", ["USA", "UK", "India", "Canada", "Australia", "Other"], index=0)
+                        f_res = st.selectbox("Residence Type", ["Urban", "Rural"], index=0)
+                        f_act = st.selectbox("Physical Activity", ["Sedentary", "Light", "Moderate", "Active"], index=["Sedentary", "Light", "Moderate", "Active"].index(default_inputs["Physical_Activity_Level"]))
+                        f_alc = st.selectbox("Alcohol Consumption", ["Moderate", "Heavy", "Not provided"], index=0)
+                    with d_c3:
+                        f_frail = st.selectbox("Frailty Category", ["Fit", "Vulnerable", "Frail"], index=["Fit", "Vulnerable", "Frail"].index(default_inputs["Frailty_Category"]))
+                        f_meds_count = st.number_input("Number of Medications", 0, 25, int(default_inputs["Number_of_Medications"]))
+                        f_hosp = st.number_input("Hospital Visits (Past Year)", 0, 30, int(default_inputs["Hospital_Visits"]))
+                        f_emerg = st.number_input("Emergency Visits (Past Year)", 0, 30, int(default_inputs["Emergency_Visits"]))
+                        f_income = st.number_input("Annual Income (USD)", 0, 500000, int(default_inputs["Annual_Household_Income_USD"]), step=5000)
 
-            # 2) Activity / vitals block
-            with st.expander("🫀 2. Activity, Vitals & Blood Pressure", expanded=False):
-                features_block = [
-                    "Exercise_Hours_Per_Week", "Daily_Steps", "Water_Intake_L",
-                    "Sodium_Intake_mg", "Fast_Food_Frequency_Per_Week",
-                    "Sleep_Duration_Hours", "Stress_Level", "Heart_Rate",
-                    "Respiratory_Rate", "Oxygen_Saturation", "Systolic_BP",
-                    "Diastolic_BP", "Blood_Pressure_Category",
-                ]
-                for start in range(0, len(features_block), 3):
-                    c1, c2, c3 = st.columns(3)
-                    for container, feature_name in zip(
-                        [c1, c2, c3], features_block[start:start + 3]
-                    ):
-                        if feature_name in SEVERITY_CATEGORICAL_FEATURES:
-                            ui_values[feature_name] = render_category_field(container, feature_name)
-                        else:
-                            ui_values[feature_name] = render_numeric_field(container, feature_name)
-
-            # 3) Renal / laboratory block
-            with st.expander("🧪 3. Renal Function, Metabolic & Hematology Labs", expanded=False):
-                features_block = [
-                    "Serum_Creatinine", "eGFR", "Blood_Urea_Nitrogen", "Albumin",
-                    "Urine_ACR", "Urine_Protein", "HbA1c", "Fasting_Glucose",
-                    "Hemoglobin", "Sodium", "Potassium", "Calcium", "Phosphorus",
-                    "Uric_Acid", "CRP",
-                ]
-                for start in range(0, len(features_block), 3):
-                    c1, c2, c3 = st.columns(3)
-                    for container, feature_name in zip(
-                        [c1, c2, c3], features_block[start:start + 3]
-                    ):
-                        ui_values[feature_name] = render_numeric_field(container, feature_name)
-
-            # 4) Comorbidity block
-            with st.expander("🏥 4. Lipids, Comorbidities & Disease History", expanded=False):
-                features_block = [
-                    "Total_Cholesterol", "HDL", "LDL", "Triglycerides",
-                    "Diabetes", "Hypertension", "Cardiovascular_Disease",
-                    "Heart_Failure", "Hyperlipidemia", "Kidney_Stones",
-                    "Recurrent_UTI", "Autoimmune_Disease", "Family_History_CKD",
-                    "Obesity",
-                ]
-                for start in range(0, len(features_block), 3):
-                    c1, c2, c3 = st.columns(3)
-                    for container, feature_name in zip(
-                        [c1, c2, c3], features_block[start:start + 3]
-                    ):
-                        if feature_name in SEVERITY_BINARY_FEATURES:
-                            ui_values[feature_name] = render_binary_field(container, feature_name)
-                        else:
-                            ui_values[feature_name] = render_numeric_field(container, feature_name)
-
-            # 5) Medication / utilization block
-            with st.expander("💊 5. Medications, Frailty, Utilisation & Socioeconomics", expanded=False):
-                features_block = [
-                    "ACE_Inhibitor", "ARB", "Diabetes_Medication", "Statin", "Diuretic",
-                    "NSAID_Usage", "Medication_Adherence", "Number_of_Medications",
-                    "Frailty_Index", "Frailty_Category", "Hospital_Visits",
-                    "Emergency_Visits", "Specialist_Visits", "Annual_Checkups",
-                    "Health_Insurance", "Annual_Household_Income_USD",
-                    "Annual_Medical_Cost_USD", "Employment_Status",
-                ]
-                for start in range(0, len(features_block), 3):
-                    c1, c2, c3 = st.columns(3)
-                    for container, feature_name in zip(
-                        [c1, c2, c3], features_block[start:start + 3]
-                    ):
-                        if feature_name in SEVERITY_BINARY_FEATURES:
-                            ui_values[feature_name] = render_binary_field(container, feature_name)
-                        elif feature_name in SEVERITY_CATEGORICAL_FEATURES:
-                            ui_values[feature_name] = render_category_field(container, feature_name)
-                        else:
-                            ui_values[feature_name] = render_numeric_field(container, feature_name)
-
-            missing_ui = [f for f in SEVERITY_FEATURE_NAMES if f not in ui_values]
-            if missing_ui:
-                st.error(f"Internal form mapping error. Missing features: {missing_ui}")
-                st.stop()
-
-            submit_btn = st.button(
-                "🚀 Run Final CKD Severity Assessment",
-                type="primary",
-                use_container_width=True,
-                key="run_final_severity_assessment",
-            )
+                submit_btn = st.form_submit_button("🚀 Run CKD Severity Assessment", use_container_width=True)
 
             if submit_btn:
-                patient_profile = {f: ui_values[f] for f in SEVERITY_FEATURE_NAMES}
+                patient_profile = default_inputs.copy()
+                patient_profile.update({
+                    "Age": f_age, "Sex": f_sex, "Ethnicity": f_eth, "Country": f_cntry, "Residence_Type": f_res,
+                    "BMI": f_bmi, "Waist_Circumference_cm": f_waist, "Smoking_Status": f_smoke,
+                    "Alcohol_Consumption": f_alc, "Physical_Activity_Level": f_act, "Systolic_BP": f_sbp,
+                    "Diastolic_BP": f_dbp, "Blood_Pressure_Category": f_bp_cat, "Heart_Rate": f_hr,
+                    "Respiratory_Rate": f_rr, "Oxygen_Saturation": f_o2, "Serum_Creatinine": f_creat,
+                    "eGFR": f_egfr, "Blood_Urea_Nitrogen": f_bun, "Albumin": f_alb, "Urine_ACR": f_uacr,
+                    "Urine_Protein": f_uprot, "HbA1c": f_hba1c, "Fasting_Glucose": f_glucose,
+                    "Hemoglobin": f_hemo, "Sodium": f_na, "Potassium": f_k, "Calcium": f_ca,
+                    "Phosphorus": f_phos, "Uric_Acid": f_uric, "Total_Cholesterol": f_chol,
+                    "HDL": f_hdl, "LDL": f_ldl, "Triglycerides": f_trig, "CRP": f_crp,
+                    "Diabetes": f_dm, "Hypertension": f_htn, "Cardiovascular_Disease": f_cvd,
+                    "Heart_Failure": f_hf, "Hyperlipidemia": f_hyperlip, "Kidney_Stones": f_stones,
+                    "Recurrent_UTI": f_uti, "Autoimmune_Disease": f_autoimm, "Family_History_CKD": f_fam,
+                    "ACE_Inhibitor": f_acei, "ARB": f_arb, "Statin": f_statin, "Diuretic": f_diur,
+                    "Frailty_Category": f_frail, "Number_of_Medications": f_meds_count,
+                    "Hospital_Visits": f_hosp, "Emergency_Visits": f_emerg, "Annual_Household_Income_USD": f_income
+                })
+
                 input_df = pd.DataFrame([patient_profile])
-
+            
                 try:
-                    df_encoded = _prepare_severity_features(
-                        input_df,
-                        severity_imputer,
-                        cat_cols_saved,
-                        encoded_cols_saved,
-                    )
-
-                    df_scaled = severity_scaler.transform(df_encoded)
-
-                    expected_model_features = getattr(severity_scaler, "n_features_in_", None)
-                    if expected_model_features is not None and df_scaled.shape[1] != expected_model_features:
-                        raise ValueError(
-                            f"Encoded feature count mismatch: model/scaler expects "
-                            f"{expected_model_features}, received {df_scaled.shape[1]}."
-                        )
-
+                    df_proc = input_df.copy()
+                
+                    num_sub = [c for c in df_proc.select_dtypes(include=np.number).columns if c in severity_imputer.feature_names_in_]
+                    df_proc[num_sub] = severity_imputer.transform(df_proc[num_sub])
+                
+                    if cat_cols_saved:
+                        active_cats = [c for c in cat_cols_saved if c in df_proc.columns]
+                        df_proc = pd.get_dummies(df_proc, columns=active_cats, drop_first=True)
+                
+                    if encoded_cols_saved:
+                        for col in encoded_cols_saved:
+                            if col not in df_proc.columns:
+                                df_proc[col] = 0
+                        df_proc = df_proc[encoded_cols_saved]
+                
+                    df_scaled = severity_scaler.transform(df_proc)
+                
                     pred_class = int(severity_model.predict(df_scaled)[0])
                     pred_probs = severity_model.predict_proba(df_scaled)[0]
-                    pred_label = SEVERITY_CLASS_NAMES.get(
-                        pred_class, f"Class {pred_class}"
-                    )
-
+                    pred_label = SEVERITY_CLASS_NAMES.get(pred_class, f"Class {pred_class}")
+                
                     st.session_state["clinical_input_data"] = input_df.copy()
                     st.session_state["severity_prediction"] = pred_class
                     st.session_state["severity_label"] = pred_label
                     st.session_state["severity_probabilities"] = pred_probs
 
-                    st.success(
-                        f"### 🎯 Final Severity Classification: **{pred_label}**"
-                    )
-
+                    st.success(f"### 🎯 Severity Classification: **{pred_label}**")
                     render_severity_visual_stepper_ui(pred_label)
 
-                    p_col1, p_col2 = st.columns([1.15, 1])
+                    p_col1, p_col2 = st.columns([1.2, 1])
                     with p_col1:
                         st.subheader("📊 Multi-Class Probability Distribution")
                         prob_df = pd.DataFrame({
-                            "Stage": [
-                                "0 · Healthy",
-                                "1 · Mild CKD",
-                                "2 · Moderate CKD",
-                                "3 · Severe CKD",
-                            ],
-                            "Probability (%)": [float(p) * 100 for p in pred_probs],
-                            "Color": [
-                                SEVERITY_CLASS_COLORS[0],
-                                SEVERITY_CLASS_COLORS[1],
-                                SEVERITY_CLASS_COLORS[2],
-                                SEVERITY_CLASS_COLORS[3],
-                            ],
+                            "Stage": ["0: Healthy", "1: Mild CKD", "2: Moderate CKD", "3: Severe CKD"],
+                            "Probability (%)": [p * 100 for p in pred_probs],
+                            "Color": ["#2ecc71", "#f1c40f", "#e67e22", "#e74c3c"]
                         })
-
+                    
                         fig_probs = go.Figure(go.Bar(
                             x=prob_df["Probability (%)"],
                             y=prob_df["Stage"],
-                            orientation="h",
+                            orientation='h',
                             marker_color=prob_df["Color"],
                             text=[f"{p:.2f}%" for p in prob_df["Probability (%)"]],
-                            textposition="outside",
+                            textposition='outside'
                         ))
                         fig_probs.update_layout(
                             xaxis_title="Predicted Probability (%)",
                             xaxis_range=[0, 115],
-                            height=300,
-                            margin=dict(l=20, r=30, t=20, b=30),
-                            paper_bgcolor="rgba(0,0,0,0)",
+                            height=260,
+                            margin=dict(l=20, r=30, t=20, b=30)
                         )
-                        st.plotly_chart(
-                            fig_probs,
-                            use_container_width=True,
-                            key="sev_pred_probs_bar_result_v2",
-                        )
+                        st.plotly_chart(fig_probs, use_container_width=True, key="sev_pred_probs_bar_result")
 
                     with p_col2:
-                        st.subheader("💡 Key Physiological Signals")
+                        st.subheader("💡 Key Physiological Drivers")
                         drivers = []
-                        if float(ui_values["eGFR"]) < 60:
-                            drivers.append(
-                                f"**Reduced eGFR:** {float(ui_values['eGFR']):.1f} mL/min/1.73m²"
-                            )
-                        if float(ui_values["Serum_Creatinine"]) > 1.3:
-                            drivers.append(
-                                f"**Elevated Serum Creatinine:** {float(ui_values['Serum_Creatinine']):.2f} mg/dL"
-                            )
-                        if float(ui_values["Urine_ACR"]) >= 30:
-                            drivers.append(
-                                f"**Albuminuria:** ACR {float(ui_values['Urine_ACR']):.1f} mg/g"
-                            )
-                        if float(ui_values["Blood_Urea_Nitrogen"]) > 20:
-                            drivers.append(
-                                f"**Elevated BUN:** {float(ui_values['Blood_Urea_Nitrogen']):.1f} mg/dL"
-                            )
-                        if float(ui_values["HbA1c"]) >= 6.5:
-                            drivers.append(
-                                f"**Diabetic-range HbA1c:** {float(ui_values['HbA1c']):.1f}%"
-                            )
-                        if float(ui_values["Systolic_BP"]) >= 140:
-                            drivers.append(
-                                f"**Elevated BP:** {float(ui_values['Systolic_BP']):.0f}/{float(ui_values['Diastolic_BP']):.0f} mmHg"
-                            )
+                        if f_egfr < 60:
+                            drivers.append(f"• **Reduced eGFR**: {f_egfr:.1f} mL/min (Major renal filtration decline)")
+                        if f_creat > 1.3:
+                            drivers.append(f"• **Elevated Serum Creatinine**: {f_creat:.2f} mg/dL")
+                        if f_uacr >= 30:
+                            drivers.append(f"• **Pathological Albuminuria**: ACR = {f_uacr:.1f} mg/g")
+                        if f_bun > 20:
+                            drivers.append(f"• **Elevated BUN**: {f_bun:.1f} mg/dL (Azotemia / uremia marker)")
+                        if f_hba1c >= 6.5:
+                            drivers.append(f"• **Diabetic Glycemia**: HbA1c {f_hba1c:.1f}% (Microvascular renal risk)")
+                        if f_sbp >= 140:
+                            drivers.append(f"• **Hypertension**: BP {f_sbp}/{f_dbp} mmHg (Glomerular shear stress)")
+                    
                         if not drivers:
-                            drivers.append(
-                                "No major renal-biomarker warning signals were triggered by the submitted values."
-                            )
-
-                        for driver in drivers:
-                            st.markdown(f"- {driver}")
+                            drivers.append("• All major renal biomarkers (eGFR, Creatinine, ACR, BUN) are within healthy physiological limits.")
+                    
+                        st.markdown("<br>".join(drivers), unsafe_allow_html=True)
 
                 except Exception as p_err:
-                    st.error("Severity inference failed.")
-                    st.caption(str(p_err))
+                    st.error(f"Inference error: {p_err}")
 
-        # Persisted results: stay visible after Streamlit reruns.
+        # Biomarker Panels & KDIGO Outcomes (shown once clinical profile exists)
         clinical_data = st.session_state.get("clinical_input_data")
-
-        if clinical_data is not None and len(clinical_data) > 0:
+        if clinical_data is not None:
             sev_label = st.session_state.get("severity_label", "Healthy")
-            sev_pred = int(st.session_state.get("severity_prediction", 0))
-            sev_probs = np.asarray(
-                st.session_state.get(
-                    "severity_probabilities",
-                    np.zeros(4)
-                ),
-                dtype=float,
-            )
-
             st.divider()
-            st.subheader("🧪 Patient Biomarker Evaluation")
-
+            st.subheader("🧪 Patient Biomarker Evaluation vs Reference Intervals")
+        
             c_p1, c_p2 = st.columns(2)
             with c_p1:
+                st.markdown("#### 🩺 Renal Function & Albuminuria Panel")
                 renal_records = []
                 if "eGFR" in clinical_data:
-                    val = float(clinical_data["eGFR"].iloc[0])
-                    status = (
-                        "🔴 Severely Decreased (<30)" if val < 30
-                        else "🟠 Moderately Decreased (30-59)" if val < 60
-                        else "🟡 Mildly Decreased (60-89)" if val < 90
-                        else "🟢 Normal (≥90)"
-                    )
-                    renal_records.append({
-                        "Biomarker": "eGFR (mL/min/1.73m²)",
-                        "Value": f"{val:.1f}",
-                        "Reference": "≥ 90",
-                        "Status": status,
-                    })
-
+                    val = clinical_data["eGFR"].iloc[0]
+                    status = "🔴 Severely Decreased (<30)" if val < 30 else ("🟠 Moderately Decreased (30-59)" if val < 60 else ("🟡 Mildly Decreased (60-89)" if val < 90 else "🟢 Normal (≥90)"))
+                    renal_records.append({"Biomarker": "eGFR (mL/min/1.73m²)", "Value": f"{val:.1f}", "Reference Range": "≥ 90.0", "Clinical Status": status})
                 if "Serum_Creatinine" in clinical_data:
-                    val = float(clinical_data["Serum_Creatinine"].iloc[0])
-                    status = (
-                        "🔴 Elevated" if val > 1.2
-                        else "🟢 Within common reference range"
-                    )
-                    renal_records.append({
-                        "Biomarker": "Serum Creatinine (mg/dL)",
-                        "Value": f"{val:.2f}",
-                        "Reference": "≈ 0.6-1.2",
-                        "Status": status,
-                    })
-
+                    val = clinical_data["Serum_Creatinine"].iloc[0]
+                    status = "🔴 Markedly Elevated (>2.0)" if val > 2.0 else ("🟡 Elevated (1.3-2.0)" if val > 1.2 else "🟢 Normal (0.6-1.2)")
+                    renal_records.append({"Biomarker": "Serum Creatinine (mg/dL)", "Value": f"{val:.2f}", "Reference Range": "0.60 - 1.20", "Clinical Status": status})
                 if "Blood_Urea_Nitrogen" in clinical_data:
-                    val = float(clinical_data["Blood_Urea_Nitrogen"].iloc[0])
-                    status = "🔴 Elevated" if val > 20 else "🟢 Within common reference range"
-                    renal_records.append({
-                        "Biomarker": "BUN (mg/dL)",
-                        "Value": f"{val:.1f}",
-                        "Reference": "≈ 7-20",
-                        "Status": status,
-                    })
-
+                    val = clinical_data["Blood_Urea_Nitrogen"].iloc[0]
+                    status = "🔴 High Uremia (>40)" if val > 40 else ("🟡 Elevated (21-40)" if val > 20 else "🟢 Normal (7-20)")
+                    renal_records.append({"Biomarker": "Blood Urea Nitrogen (mg/dL)", "Value": f"{val:.1f}", "Reference Range": "7.0 - 20.0", "Clinical Status": status})
+                if "Albumin" in clinical_data:
+                    val = clinical_data["Albumin"].iloc[0]
+                    status = "🔴 Hypoalbuminemia (<3.4)" if val < 3.4 else "🟢 Normal (3.4-5.4)"
+                    renal_records.append({"Biomarker": "Serum Albumin (g/dL)", "Value": f"{val:.2f}", "Reference Range": "3.40 - 5.40", "Clinical Status": status})
                 if "Urine_ACR" in clinical_data:
-                    val = float(clinical_data["Urine_ACR"].iloc[0])
-                    status = (
-                        "🔴 Severely increased (>300)" if val > 300
-                        else "🟡 Increased (30-300)" if val >= 30
-                        else "🟢 <30"
-                    )
-                    renal_records.append({
-                        "Biomarker": "Urine ACR (mg/g)",
-                        "Value": f"{val:.1f}",
-                        "Reference": "< 30",
-                        "Status": status,
-                    })
-
+                    val = clinical_data["Urine_ACR"].iloc[0]
+                    status = "🔴 Severely Increased / Macro (>300)" if val > 300 else ("🟡 Microalbuminuria (30-300)" if val >= 30 else "🟢 Normal (<30)")
+                    renal_records.append({"Biomarker": "Urine ACR (mg/g)", "Value": f"{val:.1f}", "Reference Range": "< 30.0", "Clinical Status": status})
+                if "Urine_Protein" in clinical_data:
+                    val = clinical_data["Urine_Protein"].iloc[0]
+                    status = "🔴 Proteinuria (>150)" if val > 150 else "🟢 Normal (<150)"
+                    renal_records.append({"Biomarker": "Urine Protein (mg/dL)", "Value": f"{val:.1f}", "Reference Range": "< 150.0", "Clinical Status": status})
                 if renal_records:
-                    st.dataframe(
-                        pd.DataFrame(renal_records),
-                        use_container_width=True,
-                        hide_index=True,
-                    )
+                    st.dataframe(pd.DataFrame(renal_records), use_container_width=True, hide_index=True)
 
-            with c_p2:
-                other_records = []
-                for label, col_name, formatter, predicate in [
-                    (
-                        "HbA1c (%)", "HbA1c",
-                        lambda x: f"{x:.1f}",
-                        lambda x: "🔴 Diabetic range" if x >= 6.5
-                        else "🟡 Prediabetic range" if x >= 5.7 else "🟢 Normal range"
-                    ),
-                    (
-                        "Fasting Glucose (mg/dL)", "Fasting_Glucose",
-                        lambda x: f"{x:.1f}",
-                        lambda x: "🔴 Elevated" if x >= 126
-                        else "🟡 Impaired" if x >= 100 else "🟢 Normal"
-                    ),
-                    (
-                        "Hemoglobin (g/dL)", "Hemoglobin",
-                        lambda x: f"{x:.1f}",
-                        lambda x: "🔴 Low" if x < 12 else "🟢 Within common reference range"
-                    ),
-                    (
-                        "CRP (mg/L)", "CRP",
-                        lambda x: f"{x:.2f}",
-                        lambda x: "🔴 Elevated" if x > 3 else "🟢 Lower range"
-                    ),
+                st.markdown("#### 🩸 Electrolytes & Mineral Metabolism Panel")
+                elect_records = []
+                for b_name, col_name, ref_str, low_val, high_val in [
+                    ("Sodium (mEq/L)", "Sodium", "135 - 145", 135, 145),
+                    ("Potassium (mEq/L)", "Potassium", "3.5 - 5.0", 3.5, 5.0),
+                    ("Calcium (mg/dL)", "Calcium", "8.5 - 10.5", 8.5, 10.5),
+                    ("Phosphorus (mg/dL)", "Phosphorus", "2.5 - 4.5", 2.5, 4.5),
+                    ("Uric Acid (mg/dL)", "Uric_Acid", "3.5 - 7.2", 3.5, 7.2)
                 ]:
                     if col_name in clinical_data:
-                        val = float(clinical_data[col_name].iloc[0])
-                        other_records.append({
-                            "Marker": label,
-                            "Value": formatter(val),
-                            "Status": predicate(val),
-                        })
+                        val = clinical_data[col_name].iloc[0]
+                        stt = "🔴 Hyperkalemia (>5.0)" if col_name == "Potassium" and val > 5.0 else ("🔴 Hypokalemia (<3.5)" if col_name == "Potassium" and val < 3.5 else ("🔴 Abnormal" if val < low_val or val > high_val else "🟢 Normal"))
+                        elect_records.append({"Biomarker": b_name, "Value": f"{val:.2f}", "Reference Range": ref_str, "Clinical Status": stt})
+                if elect_records:
+                    st.dataframe(pd.DataFrame(elect_records), use_container_width=True, hide_index=True)
 
+            with c_p2:
+                st.markdown("#### 🧬 Glycemic & Cardiovascular Panel")
+                glyc_records = []
+                if "HbA1c" in clinical_data:
+                    val = clinical_data["HbA1c"].iloc[0]
+                    status = "🔴 Diabetic Range (≥6.5%)" if val >= 6.5 else ("🟡 Prediabetic (5.7-6.4%)" if val >= 5.7 else "🟢 Normal (<5.7%)")
+                    glyc_records.append({"Biomarker": "HbA1c (%)", "Value": f"{val:.1f}%", "Reference Range": "< 5.7%", "Clinical Status": status})
+                if "Fasting_Glucose" in clinical_data:
+                    val = clinical_data["Fasting_Glucose"].iloc[0]
+                    status = "🔴 Diabetic (≥126)" if val >= 126 else ("🟡 Impaired (100-125)" if val >= 100 else "🟢 Normal (70-99)")
+                    glyc_records.append({"Biomarker": "Fasting Glucose (mg/dL)", "Value": f"{val:.1f}", "Reference Range": "70 - 99", "Clinical Status": status})
                 if "Systolic_BP" in clinical_data and "Diastolic_BP" in clinical_data:
-                    sbp = float(clinical_data["Systolic_BP"].iloc[0])
-                    dbp = float(clinical_data["Diastolic_BP"].iloc[0])
-                    other_records.append({
-                        "Marker": "Blood Pressure (mmHg)",
-                        "Value": f"{sbp:.0f}/{dbp:.0f}",
-                        "Status": (
-                            "🔴 High"
-                            if sbp >= 140 or dbp >= 90
-                            else "🟡 Elevated"
-                            if sbp >= 130 or dbp >= 80
-                            else "🟢 Lower range"
-                        ),
-                    })
+                    sbp = clinical_data["Systolic_BP"].iloc[0]
+                    dbp = clinical_data["Diastolic_BP"].iloc[0]
+                    status = "🔴 Stage 2 HTN (≥140/90)" if sbp >= 140 or dbp >= 90 else ("🟡 Stage 1 HTN (130-139)" if sbp >= 130 or dbp >= 80 else "🟢 Normal (<120/80)")
+                    glyc_records.append({"Biomarker": "Blood Pressure (mmHg)", "Value": f"{sbp:.0f}/{dbp:.0f}", "Reference Range": "< 120/80", "Clinical Status": status})
+                if "Hemoglobin" in clinical_data:
+                    val = clinical_data["Hemoglobin"].iloc[0]
+                    status = "🔴 Anemia (<12.0)" if val < 12.0 else "🟢 Normal (12.0-17.5)"
+                    glyc_records.append({"Biomarker": "Hemoglobin (g/dL)", "Value": f"{val:.1f}", "Reference Range": "12.0 - 17.5", "Clinical Status": status})
+                if "CRP" in clinical_data:
+                    val = clinical_data["CRP"].iloc[0]
+                    status = "🔴 High Inflammation (>3.0)" if val > 3.0 else ("🟡 Moderate (1.0-3.0)" if val >= 1.0 else "🟢 Low Risk (<1.0)")
+                    glyc_records.append({"Biomarker": "C-Reactive Protein (mg/L)", "Value": f"{val:.2f}", "Reference Range": "< 1.0", "Clinical Status": status})
+                if glyc_records:
+                    st.dataframe(pd.DataFrame(glyc_records), use_container_width=True, hide_index=True)
 
-                if other_records:
-                    st.dataframe(
-                        pd.DataFrame(other_records),
-                        use_container_width=True,
-                        hide_index=True,
-                    )
-
-            st.divider()
-            st.subheader("🧭 Model Probability Summary")
-            probability_table = pd.DataFrame({
-                "Severity": list(SEVERITY_CLASS_NAMES.values()),
-                "Probability (%)": (sev_probs * 100).round(2),
-            })
-            st.dataframe(
-                probability_table,
-                use_container_width=True,
-                hide_index=True,
-            )
+                st.markdown("#### 🫀 Lipid & Metabolic Panel")
+                lipid_records = []
+                for b_name, col_name, ref_str, low_val, high_val in [
+                    ("Total Cholesterol (mg/dL)", "Total_Cholesterol", "< 200", 0, 200),
+                    ("HDL Cholesterol (mg/dL)", "HDL", "≥ 40", 40, 999),
+                    ("LDL Cholesterol (mg/dL)", "LDL", "< 100", 0, 100),
+                    ("Triglycerides (mg/dL)", "Triglycerides", "< 150", 0, 150),
+                    ("BMI (kg/m²)", "BMI", "18.5 - 24.9", 18.5, 24.9)
+                ]:
+                    if col_name in clinical_data:
+                        val = clinical_data[col_name].iloc[0]
+                        stt = "🔴 Elevated" if val > high_val else ("🔴 Low" if val < low_val else "🟢 Optimal")
+                        lipid_records.append({"Biomarker": b_name, "Value": f"{val:.1f}", "Reference Range": ref_str, "Clinical Status": stt})
+                if lipid_records:
+                    st.dataframe(pd.DataFrame(lipid_records), use_container_width=True, hide_index=True)
 
             st.divider()
-            st.subheader("📋 Severity Interpretation")
+            st.subheader("🏥 KDIGO Care Plan & Clinical Guidance")
             st.info(SEVERITY_DESCRIPTIONS.get(sev_label, ""))
 
             if sev_label == "Healthy":
                 st.markdown(
                     """
-                    **Healthy profile:** continue routine preventive care and
-                    discuss any persistent symptoms or concerns with a qualified clinician.
+                    ### 🟢 Healthy Patient Management Strategy
+                    - **Surveillance Frequency**: Routine annual health review and primary prevention.
+                    - **Target Goals**: Maintain BP < 120/80 mmHg, HbA1c < 5.7%, BMI 18.5–24.9 kg/m².
+                    - **Lifestyle**: Maintain adequate hydration (2–2.5 L/day), dietary sodium < 2000 mg/day, regular aerobic activity (> 150 min/week).
+                    - **Renal Preservation**: Avoid chronic non-steroidal anti-inflammatory drugs (NSAIDs) and unprescribed nephrotoxins.
                     """
                 )
             elif sev_label == "Mild CKD":
                 st.markdown(
                     """
-                    **Mild CKD profile:** kidney function and risk factors should be
-                    reviewed clinically, with appropriate follow-up of eGFR and albuminuria.
+                    ### 🟡 Mild CKD (KDIGO Stage 1 & 2) Protocol
+                    - **Surveillance Frequency**: Clinical & lab review every **6 to 12 months** (eGFR + Urine ACR monitoring).
+                    - **Blood Pressure Target**: Systolic BP < 120 mmHg (standardized measurement).
+                    - **Renoprotective Pharmacotherapy**: First-line **ACE inhibitor or ARB** if albuminuria (Urine ACR ≥ 30 mg/g) is present; initiate **SGLT2 inhibitor** in diabetic or proteinuric CKD patients.
+                    - **Diet & Nutrition**: Moderate dietary protein intake (~0.8 g/kg/day), sodium restriction (< 2000 mg/day).
                     """
                 )
             elif sev_label == "Moderate CKD":
                 st.markdown(
                     """
-                    **Moderate CKD profile:** closer monitoring and clinical review are
-                    appropriate, with attention to renal function, blood pressure and
-                    metabolic complications.
+                    ### 🟠 Moderate CKD (KDIGO Stage 3a & 3b) Management Protocol
+                    - **Surveillance Frequency**: Clinical review every **3 to 6 months** with comprehensive metabolic panels.
+                    - **Nephrology Co-Management**: Formal nephrology consultation recommended to mitigate progression.
+                    - **Comprehensive Medication Regimen**: Maximally tolerated **ACEi / ARB** therapy + **SGLT2 inhibitor** (e.g. Dapagliflozin / Empagliflozin); Statin therapy for cardiovascular risk mitigation.
+                    - **Metabolic Complication Management**: Monitor serum Potassium and for anemia / secondary hyperparathyroidism.
                     """
                 )
             else:
                 st.markdown(
                     """
-                    **Severe CKD profile:** advanced kidney dysfunction requires
-                    prompt clinical evaluation and specialist management.
+                    ### 🔴 Severe CKD (KDIGO Stage 4 & 5) Critical Protocol
+                    - **Surveillance Frequency**: Monthly to bi-monthly close nephrology follow-up.
+                    - **Urgent Nephrology Referral**: Immediate multidisciplinary advanced CKD clinic enrollment.
+                    - **Renal Replacement Therapy (RRT) Preparation**: Timely vascular access planning (AV Fistula / Graft evaluation) or peritoneal dialysis education; pre-emptive kidney transplant evaluation.
+                    - **Metabolic Derangement Interventions**: Serum Potassium control, Metabolic Acidosis correction (Oral Sodium Bicarbonate), Phosphate binders + active Vitamin D, and ESA / IV Iron anemia therapy.
                     """
                 )
 
-            st.caption(
-                "Severity class and probabilities are model outputs, not a definitive "
-                "diagnosis or a substitute for clinical assessment."
-            )
-
-            report_df = clinical_data.copy()
-            report_df["Predicted_Severity_Class"] = sev_pred
-            report_df["Predicted_Severity_Label"] = sev_label
-            for idx, class_name in SEVERITY_CLASS_NAMES.items():
-                if idx < len(sev_probs):
-                    report_df[f"Probability_{class_name.replace(' ', '_')}"] = float(sev_probs[idx])
-
-            report_csv = report_df.to_csv(index=False).encode("utf-8")
-            st.download_button(
-                "📥 Download Severity Screening Report",
-                data=report_csv,
-                file_name="CKD_Severity_Screening_Report.csv",
-                mime="text/csv",
-                use_container_width=True,
-                key="download_severity_report_v2",
-            )
-
     # -------------------------------------------------------------------------
-    # TAB 2 : STATISTICAL ANALYSIS
+    # TAB 2: STATISTICAL ANALYSIS
     # -------------------------------------------------------------------------
     with tab_clin_stats:
-        st.header("📊 Statistical Analysis & Model Validation")
+        st.header("📊 Statistical Analysis & Model Validation (Severity Workflow)")
         st.write(
             """
-            The final notebook benchmarks three candidate architectures on the
-            original test set after training on the SMOTE-balanced training cohort.
+            Comprehensive statistical benchmarking, hypothesis testing, and model validation 
+            integrated directly from `Severity model Final Draft.ipynb`. Three candidate architectures 
+            were trained on SMOTE-balanced training cohorts and rigorously validated on the **untouched original test set**.
             """
         )
 
-        st.subheader("🤖 Final Model Comparison")
-        st.dataframe(
-            SEVERITY_MODEL_RESULTS.style.format({
-                c: "{:.4f}"
-                for c in SEVERITY_MODEL_RESULTS.columns
-                if c != "Model"
-            }),
-            use_container_width=True,
-            hide_index=True,
-        )
-
-        st.info(
-            f"""
-            **Final notebook result:** XGBoost achieved **99.85% accuracy**, **0.9692 macro F1**
-            and **0.9984 QWK**. The multiclass One-vs-Rest ROC-AUC reported by the notebook was
-            **{SEVERITY_NOTEBOOK_RESULTS['multiclass_roc_auc']:.6f}**.
-            """
-        )
-
-        k1, k2, k3, k4 = st.columns(4)
-        k1.metric("XGBoost Accuracy", "99.85%")
-        k2.metric("XGBoost Macro F1", "0.9692")
-        k3.metric("XGBoost QWK", "0.9984")
-        k4.metric("Multiclass ROC-AUC", f"{SEVERITY_NOTEBOOK_RESULTS['multiclass_roc_auc']:.4f}")
-
-        st.divider()
-        st.subheader("🎯 XGBoost Class-Level Performance")
-        st.dataframe(
-            SEVERITY_XGB_CLASS_REPORT,
-            use_container_width=True,
-            hide_index=True,
-        )
-
-        st.divider()
-        st.subheader("🧮 XGBoost Confusion Matrix")
-        cm_labels = ["Healthy", "Mild CKD", "Moderate CKD", "Severe CKD"]
-        cm_total = SEVERITY_XGB_CONFUSION.sum(axis=1, keepdims=True)
-        cm_percent = SEVERITY_XGB_CONFUSION / cm_total * 100.0
-
-        cm_fig = px.imshow(
-            cm_percent,
-            x=cm_labels,
-            y=cm_labels,
-            text_auto=".2f",
-            color_continuous_scale="Blues",
-            labels={"x": "Predicted Class", "y": "Actual Class", "color": "%"},
-            title="Normalized Confusion Matrix — XGBoost Severity Model",
-        )
-        cm_fig.update_layout(height=460, margin=dict(l=20, r=20, t=55, b=20))
-        st.plotly_chart(cm_fig, use_container_width=True, key="sev_final_confusion_matrix")
-
-        st.divider()
-        st.subheader("📈 Model Stability")
-        s1, s2, s3 = st.columns(3)
-        s1.metric(
-            "5-Fold CV Weighted F1",
-            f"{SEVERITY_NOTEBOOK_RESULTS['cv_f1_weighted_mean']:.6f}",
-        )
-        s2.metric(
-            "CV Std. Dev.",
-            f"{SEVERITY_NOTEBOOK_RESULTS['cv_f1_weighted_std']:.6f}",
-        )
-        s3.metric(
-            "Final Learning-Curve Validation",
-            f"{SEVERITY_NOTEBOOK_RESULTS['learning_curve_validation_final']:.5f}",
-        )
-
-        st.divider()
-        st.subheader("🔬 Statistical Feature Audit")
         analytics = load_severity_analytics_payload()
 
+        st.subheader("🤖 Model Performance Comparison")
+        st.dataframe(SEVERITY_MODEL_RESULTS, use_container_width=True, hide_index=True)
+
+        st.info(
+            """
+            **Key Findings & Rationale for Non-Statistical Users:**
+            - **Why XGBoost Was Selected:** In multi-class medical diagnosis, **Macro F1** (which calculates accuracy equally across all disease stages) is critical because rare severe cases must never be masked by the large healthy majority. XGBoost achieved the highest **Macro F1 (96.92%)** and overall **Accuracy (99.85%)**.
+            - **What is Quadratic Weighted Kappa (QWK)?** QWK measures agreement while severely penalizing distant misdiagnoses (e.g., classifying a Severe patient as Healthy). Both Random Forest (0.9986) and XGBoost (0.9984) achieved near-perfect agreement.
+            - **Why SMOTE Class Balancing was Essential:** In real clinical cohorts, Healthy patients represent ~81.5% while Severe Stage 4/5 patients are only ~1.1%. SMOTE synthetic oversampling allowed tree algorithms to learn subtle biomarkers of severe stages without overfitting.
+            """
+        )
+
+        st.divider()
+        st.subheader("🕸️ Multi-Metric Comparison & Radar Profile")
+        c_m1, c_m2 = st.columns(2)
+        with c_m1:
+            fig_comp = go.Figure()
+            fig_comp.add_trace(go.Bar(name='Accuracy', x=SEVERITY_MODEL_RESULTS['Model'], y=SEVERITY_MODEL_RESULTS['Accuracy'], marker_color='#3498db'))
+            fig_comp.add_trace(go.Bar(name='Macro F1', x=SEVERITY_MODEL_RESULTS['Model'], y=SEVERITY_MODEL_RESULTS['Macro F1'], marker_color='#2ecc71'))
+            fig_comp.add_trace(go.Bar(name='QWK', x=SEVERITY_MODEL_RESULTS['Model'], y=SEVERITY_MODEL_RESULTS['QWK'], marker_color='#e67e22'))
+            fig_comp.update_layout(barmode='group', yaxis_range=[0.70, 1.02], yaxis_title="Score", height=380, margin=dict(t=20, b=20))
+            st.plotly_chart(fig_comp, use_container_width=True, key="sev_stats_comp_bar_fig")
+
+        with c_m2:
+            categories = ['Accuracy', 'Macro Precision', 'Macro Recall', 'Macro F1', 'QWK']
+            fig_radar = go.Figure()
+            fig_radar.add_trace(go.Scatterpolar(r=[0.9228, 0.7411, 0.8859, 0.7372, 0.9383], theta=categories, fill='toself', name='Ordinal Logistic', line_color='#3498db'))
+            fig_radar.add_trace(go.Scatterpolar(r=[0.9982, 0.9846, 0.9289, 0.9532, 0.9986], theta=categories, fill='toself', name='Random Forest', line_color='#9b59b6'))
+            fig_radar.add_trace(go.Scatterpolar(r=[0.9985, 0.9848, 0.9557, 0.9692, 0.9984], theta=categories, fill='toself', name='XGBoost (Deployed)', line_color='#e74c3c'))
+            fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0.7, 1.0])), height=380, margin=dict(t=20, b=20))
+            st.plotly_chart(fig_radar, use_container_width=True, key="sev_stats_radar_fig")
+
+        st.divider()
+        st.subheader("🔬 Statistical Hypothesis Testing & Feature Audit")
         if analytics:
             tab_chi, tab_mw, tab_corr, tab_out = st.tabs([
-                "📊 Chi-Square & Cramer's V",
-                "📈 Mann-Whitney U",
-                "🔗 Multicollinearity",
-                "🎯 IQR Outlier Summary",
+                "📊 Chi-Square & Cramer's V (Categorical)",
+                "📈 Mann-Whitney U (Numerical)",
+                "🔗 Multicollinearity (|r| > 0.80)",
+                "🎯 IQR Outlier Summary"
             ])
 
             with tab_chi:
-                st.write("Categorical variables vs CKD status:")
-                st.dataframe(
-                    pd.DataFrame(analytics.get("chi_square_results", [])),
-                    use_container_width=True,
-                    hide_index=True,
-                )
+                st.write("Association of Categorical Variables with CKD Status:")
+                chi_df = pd.DataFrame(analytics.get("chi_square_results", []))
+                st.dataframe(chi_df, use_container_width=True, hide_index=True)
 
             with tab_mw:
-                st.write("Numerical distributions compared using Mann-Whitney U:")
-                st.dataframe(
-                    pd.DataFrame(analytics.get("mann_whitney_results", [])),
-                    use_container_width=True,
-                    hide_index=True,
-                )
+                st.write("Mann-Whitney U Rank Sum Tests comparing CKD vs Non-CKD distributions:")
+                mw_df = pd.DataFrame(analytics.get("mann_whitney_results", []))
+                st.dataframe(mw_df, use_container_width=True, hide_index=True)
 
             with tab_corr:
-                st.write("Strongly correlated pairs identified in the feature audit:")
-                st.dataframe(
-                    pd.DataFrame(analytics.get("multicollinearity_pairs", [])),
-                    use_container_width=True,
-                    hide_index=True,
-                )
+                st.write("Strongly correlated feature pairs identified in multicollinearity audit (|r| > 0.80):")
+                corr_df = pd.DataFrame(analytics.get("multicollinearity_pairs", []))
+                st.dataframe(corr_df, use_container_width=True, hide_index=True)
 
             with tab_out:
-                st.write("Outlier percentages using the notebook's 1.5 × IQR rule:")
-                st.dataframe(
-                    pd.DataFrame(analytics.get("outlier_analysis", [])),
-                    use_container_width=True,
-                    hide_index=True,
-                )
-        else:
-            st.warning(
-                "severity_analytics.json was not found. Core final-draft model metrics "
-                "and validation results remain available above."
-            )
+                st.write("Outlier percentages identified using 1.5 × IQR standard across continuous features:")
+                out_df = pd.DataFrame(analytics.get("outlier_analysis", []))
+                st.dataframe(out_df, use_container_width=True, hide_index=True)
 
     # -------------------------------------------------------------------------
-    # TAB 3 : EXPLORATORY & DIAGNOSTIC PLOTS
+    # TAB 3: EXPLORATORY & DIAGNOSTIC PLOTS
     # -------------------------------------------------------------------------
     with tab_clin_plots:
-        st.header("📈 Exploratory & Diagnostic Visualisations")
+        st.header("📈 Exploratory & Diagnostic Visualisations (Severity Workflow)")
         st.write(
             """
-            Notebook-derived target distributions, model diagnostics,
-            feature importance, learning-curve and SHAP views are surfaced here.
+            Key exploratory data visualisations, disease stage distributions, biomarker boxplots, 
+            and tree feature importances from `Severity model Final Draft.ipynb`.
             """
         )
 
         analytics = load_severity_analytics_payload()
 
+        st.subheader("🎯 CKD Stage & Severity Target Distribution")
+        v_c1, v_c2 = st.columns(2)
         if analytics:
-            st.subheader("🎯 CKD Stage & Severity Target Distribution")
-            v_c1, v_c2 = st.columns(2)
-
             with v_c1:
-                st_df = pd.DataFrame(analytics.get("stage_distribution", []))
-                if not st_df.empty:
-                    fig_st = px.bar(
-                        st_df,
-                        x="Stage",
-                        y="Count",
-                        text="Count",
-                        color="Stage",
-                        title="Original 7-Class CKD Distribution",
-                        color_discrete_sequence=[
-                            "#2563EB", "#F59E0B", "#10B981", "#8B5CF6",
-                            "#EC4899", "#06B6D4", "#F97316"
-                        ],
-                    )
-                    fig_st.update_traces(textposition="outside")
-                    fig_st.update_layout(showlegend=False, height=380)
-                    st.plotly_chart(fig_st, use_container_width=True, key="sev_visual_stage_distribution_v2")
+                st_df = pd.DataFrame(analytics["stage_distribution"])
+                fig_st = px.bar(st_df, x="Stage", y="Count", text="Count", color="Stage",
+                                title="Original 7-Class CKD Distribution",
+                                color_discrete_sequence=["#2563EB", "#F59E0B", "#10B981", "#8B5CF6", "#EC4899", "#06B6D4", "#F97316"])
+                fig_st.update_traces(textposition='outside')
+                fig_st.update_layout(showlegend=False, height=380)
+                st.plotly_chart(fig_st, use_container_width=True, key="sev_visual_stg_bar_fig")
 
             with v_c2:
-                sev_df = pd.DataFrame(analytics.get("severity_distribution", []))
-                if not sev_df.empty:
-                    severity_order_colors = {
-                        "Healthy": SEVERITY_CLASS_COLORS[0],
-                        "Mild CKD": SEVERITY_CLASS_COLORS[1],
-                        "Moderate CKD": SEVERITY_CLASS_COLORS[2],
-                        "Severe CKD": SEVERITY_CLASS_COLORS[3],
-                    }
-                    fig_sev = px.pie(
-                        sev_df,
-                        values="Count",
-                        names="Severity",
-                        title="4-Class Severity Model Target Distribution",
-                        color="Severity",
-                        color_discrete_map=severity_order_colors,
-                    )
-                    fig_sev.update_traces(textinfo="percent+label")
-                    fig_sev.update_layout(height=380)
-                    st.plotly_chart(fig_sev, use_container_width=True, key="sev_visual_severity_pie_v2")
+                sev_df = pd.DataFrame(analytics["severity_distribution"])
+                fig_sev = px.pie(sev_df, values="Count", names="Severity",
+                                 title="4-Class Severity Model Target Distribution",
+                                 color="Severity",
+                                 color_discrete_map={
+                                     "Healthy": "#2ecc71",
+                                     "Moderate CKD": "#e67e22",
+                                     "Severe CKD": "#c0392b",
+                                     "Mild CKD": "#f1c40f"
+                                 })
+                fig_sev.update_traces(textinfo='percent+label')
+                fig_sev.update_layout(height=380)
+                st.plotly_chart(fig_sev, use_container_width=True, key="sev_visual_sev_pie_fig")
 
         st.divider()
-        st.subheader("🏆 Top XGBoost Features")
-        fig_fi = px.bar(
-            SEVERITY_TOP_FEATURES.sort_values("Importance"),
-            x="Importance",
-            y="Feature",
-            orientation="h",
-            title="Top 20 Features — Final XGBoost Severity Model",
-        )
-        fig_fi.update_layout(height=620, xaxis_title="Importance")
-        st.plotly_chart(fig_fi, use_container_width=True, key="sev_feature_importance_final")
+        st.subheader("🧮 Confusion Matrix & Multiclass ROC-AUC")
+        c_diag1, c_diag2 = st.columns(2)
+        with c_diag1:
+            cm_img = clinical_asset("severity_confusion_matrix.png")
+            if cm_img:
+                st.image(cm_img, caption="Normalized Confusion Matrix (XGBoost Severity Model)", use_container_width=True)
+            else:
+                cm_data = [[99.98, 0.01, 0.01, 0.0], [0.91, 97.27, 1.82, 0.0], [0.01, 0.12, 99.81, 0.06], [0.0, 0.0, 0.68, 99.32]]
+                labels = ["Healthy", "Mild", "Moderate", "Severe"]
+                fig_cm = px.imshow(cm_data, x=labels, y=labels, text_auto=".2f", color_continuous_scale="Blues", labels=dict(x="Predicted", y="Actual"))
+                st.plotly_chart(fig_cm, use_container_width=True, key="sev_stats_cm_heatmap_fig")
 
+        with c_diag2:
+            roc_img = clinical_asset("severity_roc_auc.png")
+            if roc_img:
+                st.image(roc_img, caption="Multiclass One-vs-Rest ROC Curves (AUC ~ 0.999+)", use_container_width=True)
+
+        st.divider()
+        st.subheader("🏆 Top Numerical Variables Associated with CKD")
+        if analytics and "ckd_correlations" in analytics:
+            top_corr = pd.DataFrame(analytics["ckd_correlations"]).head(15)
+            fig_corr = px.bar(top_corr[::-1], x="Correlation_r", y="Variable", orientation='h',
+                              color="Correlation_r", color_continuous_scale="RdBu_r",
+                              title="Top 15 Features by Pearson Correlation with CKD")
+            fig_corr.update_layout(height=450, xaxis_title="Correlation Coefficient (r)")
+            st.plotly_chart(fig_corr, use_container_width=True, key="sev_visual_corr_bar_fig")
+
+        st.divider()
+        st.subheader("🔎 XGBoost Feature Importance & Explanatory Ranking")
         fi_img = clinical_asset("severity_feature_importance_xgb.png")
         if fi_img:
-            with st.expander("🖼️ Original notebook feature-importance figure", expanded=False):
-                st.image(fi_img, use_container_width=True)
-
-        st.divider()
-        st.subheader("🧮 Multiclass ROC-AUC")
-        roc_img = clinical_asset("severity_roc_auc.png")
-        if roc_img:
-            st.image(
-                roc_img,
-                caption="Multiclass One-vs-Rest ROC curves — XGBoost",
-                use_container_width=True,
-            )
-        else:
-            st.metric(
-                "Notebook Multiclass ROC-AUC",
-                f"{SEVERITY_NOTEBOOK_RESULTS['multiclass_roc_auc']:.6f}",
-            )
-            st.caption(
-                "The original ROC figure is not bundled with this app, so the notebook's "
-                "reported AUC is shown as the validation summary."
-            )
-
-        st.divider()
-        st.subheader("📚 Learning Curve")
-        learning_img = clinical_asset("severity_learning_curve.png")
-        if learning_img:
-            st.image(
-                learning_img,
-                caption="Learning Curve — XGBoost CKD Severity Model",
-                use_container_width=True,
-            )
-        else:
-            lc_df = pd.DataFrame({
-                "Training fraction": [0.1, 0.325, 0.55, 0.775, 1.0],
-                "Training Accuracy": [1.0, 1.0, 1.0, 1.0, 1.0],
-                "Validation Accuracy": [0.99172005, 0.99600003, 0.99750002, 0.99838001, 0.99878001],
-            })
-            fig_lc = go.Figure()
-            fig_lc.add_trace(go.Scatter(
-                x=lc_df["Training fraction"],
-                y=lc_df["Training Accuracy"],
-                mode="lines+markers",
-                name="Training Accuracy",
-                line=dict(color=PLOT_COLORS["Accuracy"], width=3),
-            ))
-            fig_lc.add_trace(go.Scatter(
-                x=lc_df["Training fraction"],
-                y=lc_df["Validation Accuracy"],
-                mode="lines+markers",
-                name="Validation Accuracy",
-                line=dict(color=PLOT_COLORS["Recall"], width=3),
-            ))
-            fig_lc.update_layout(
-                title="Learning Curve — XGBoost CKD Severity Model",
-                xaxis_title="Training Fraction",
-                yaxis_title="Accuracy",
-                yaxis_range=[0.98, 1.01],
-                height=420,
-            )
-            st.plotly_chart(fig_lc, use_container_width=True, key="sev_learning_curve_final")
-
-        st.divider()
-        st.subheader("🧠 SHAP Explainability")
-        shap_assets = [
-            ("severity_shap_summary.png", "SHAP Summary Plot"),
-            ("severity_shap_bar.png", "SHAP Feature Importance"),
-            ("severity_shap_dependence_egfr.png", "SHAP Dependence — eGFR"),
-            ("severity_shap_waterfall.png", "SHAP Waterfall — Representative Patient"),
-        ]
-        shown_shap = False
-        for asset_name, caption in shap_assets:
-            asset_path = clinical_asset(asset_name)
-            if asset_path:
-                st.image(asset_path, caption=caption, use_container_width=True)
-                shown_shap = True
-
-        if not shown_shap:
-            st.info(
-                "The final notebook generated SHAP summary, bar, eGFR dependence and "
-                "waterfall plots. Add those exported PNG assets to the app's assets folder "
-                "to display the original notebook figures here."
-            )
+            st.image(fi_img, caption="Top 20 Important Predictors - XGBoost CKD Severity Model", use_container_width=True)
 
         st.divider()
         st.subheader("🔗 Correlation Heatmap of Key Clinical Predictors")
-        heatmap_img = clinical_asset("severity_correlation_heatmap.png")
-        if heatmap_img:
-            st.image(
-                heatmap_img,
-                caption="Correlation Matrix Heatmap — Key Clinical & Renal Variables",
-                use_container_width=True,
-            )
-
-        top_corr_img = clinical_asset("severity_top_numeric_correlations.png")
-        if top_corr_img:
-            with st.expander("📌 Top Numerical Variables Associated with CKD", expanded=False):
-                st.image(top_corr_img, use_container_width=True)
-
-        st.caption(
-            "All performance figures shown in this Clinical Screening section are "
-            "derived from the uploaded final severity-model notebook outputs."
-        )
-
-# =============================================================================
-# END OF SECTION 13 : CKD CLINICAL SEVERITY SCREENING & WORKINGS
-# =============================================================================
+        ch_img = clinical_asset("severity_correlation_heatmap.png")
+        if ch_img:
+            st.image(ch_img, caption="Correlation Matrix Heatmap of Key Clinical & Renal Variables", use_container_width=True)
