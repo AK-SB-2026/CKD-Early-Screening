@@ -1,5 +1,6 @@
 import json
 import zlib
+import base64
 
 # =============================================================================
 # STEP 0 : CKD EARLY SCREENING & ANALYTICS STREAMLIT APPLICATION
