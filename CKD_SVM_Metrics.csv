@@ -1,5 +1,3 @@
-Metric,Value
-Accuracy,0.900175
-Precision,0.6699154649428145
-Recall,0.9090418353576248
-F1 Score,0.7713713140566848
+version https://git-lfs.github.com/spec/v1
+oid sha256:522cb7bfcdbbe38b06bc3f72b9866086c6e3f255485cdd3eeedc50c8588db806
+size 119
