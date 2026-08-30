@@ -999,187 +999,253 @@ NOTEBOOK_CONFUSION_MATRICES = {
 
 
 def _candidate_files(names):
-    # Locate the project's already-existing validation/evaluation data.
-    # The insurance analysis is not a new analysis: it reuses the same
-    # validation data and SVM predictions used by Early Screening.
+    """Locate project data files using deployment-safe relative paths."""
     base = Path(__file__).resolve().parent
     roots = [
-        Path.cwd(),
         base,
         base / "data",
         base / "data" / "raw",
-        base / "data" / "raw" / "CKD_API",
-        base.parent,
-        base.parent / "data",
-        base.parent / "data" / "raw",
-        base.parent.parent / "data",
-        base.parent.parent / "data" / "raw",
+        Path.cwd(),
+        Path.cwd() / "data",
+        Path.cwd() / "data" / "raw",
     ]
+
     found = []
     for root in roots:
         for name in names:
-            p = root / name
-            if p.exists() and p.is_file() and p not in found:
-                found.append(p)
-    # Also search a few levels below the application directory so the
-    # existing project data is found when the app is moved/deployed.
+            candidate = root / name
+            if candidate.exists() and candidate.is_file() and candidate not in found:
+                found.append(candidate)
+
+    # Search below the application directory for the exact filenames.
     for name in names:
         try:
-            for p in base.rglob(name):
-                if p.is_file() and p not in found:
-                    found.append(p)
+            for candidate in base.rglob(name):
+                if candidate.is_file() and candidate not in found:
+                    found.append(candidate)
         except Exception:
             pass
+
     return found
 
 
-def _build_project_target(dataframe):
+# The notebook uses one source dataset and creates the modelling/validation
+# split inside the notebook.  Insurance Analytics must use that same
+# validation population; it must NOT require separate train/test CSV files.
+EARLY_SCREENING_LEAKAGE_COLUMNS = [
+    "Patient_ID",
+    "Serum_Creatinine",
+    "eGFR",
+    "Blood_Urea_Nitrogen",
+    "Albumin",
+    "Urine_ACR",
+    "Albuminuria_Category",
+    "Urine_Protein",
+    "CKD_Stage",
+    "Kidney_Failure_Risk",
+    "Dialysis_Required",
+    "Hospitalization_Risk",
+    "ACE_Inhibitor",
+    "ARB",
+    "Diabetes_Medication",
+    "Statin",
+    "Diuretic",
+    "Medication_Adherence",
+    "Number_of_Medications",
+    "Hospital_Visits",
+    "Emergency_Visits",
+    "Specialist_Visits",
+    "Annual_Medical_Cost_USD",
+    "HbA1c",
+    "Fasting_Glucose",
+    "Hemoglobin",
+    "Sodium",
+    "Potassium",
+    "Calcium",
+    "Phosphorus",
+    "Uric_Acid",
+    "Total_Cholesterol",
+    "HDL",
+    "LDL",
+    "Triglycerides",
+    "CRP",
+    "Frailty_Index",
+    "Frailty_Category",
+]
+
+
+def _build_early_screening_validation_set(dataframe):
+    """
+    Reproduce the Early Screening notebook's modelling-data construction
+    from the single source dataset, including its exact 80/20 split.
+    """
+    from sklearn.model_selection import train_test_split
+
     data = dataframe.copy()
-    if "CKD_Any" in data.columns:
-        y = data["CKD_Any"].copy()
-    elif "CKD" in data.columns:
-        y = data["CKD"].copy()
-    elif "CKD_Stage" in data.columns:
-        healthy = {"Healthy", "Healthy Kidney", "No CKD", "No CKD Risk", 0}
-        y = (~data["CKD_Stage"].isin(healthy)).astype(int)
-    elif "TARGET" in data.columns:
-        y = data["TARGET"].copy()
-    else:
+
+    required_target = {"CKD_Stage"}
+    if not required_target.issubset(data.columns):
         return None, None
-    try:
-        y = pd.Series(y).astype(int)
-    except Exception:
-        mapping = {"No": 0, "Yes": 1, "Healthy": 0, "Healthy Kidney": 0,
-                   "CKD": 1, "CKD Risk": 1, "High CKD Risk": 1, "Low CKD Risk": 0}
-        y = pd.Series(y).map(mapping)
-    if y.isna().any():
+
+    # Exact binary target used in early_screening:
+    # 0 = Healthy, 1 = Any CKD stage.
+    data["CKD"] = (data["CKD_Stage"] != "Healthy").astype(int)
+
+    missing_leakage = [
+        col for col in EARLY_SCREENING_LEAKAGE_COLUMNS
+        if col not in data.columns
+    ]
+    if missing_leakage:
         return None, None
-    return data, y.astype(int)
 
+    x_data = data.drop(
+        columns=EARLY_SCREENING_LEAKAGE_COLUMNS + ["CKD"]
+    ).copy()
+    y_data = data["CKD"].copy()
 
-def _add_early_screening_features(dataframe):
-    data = dataframe.copy()
-
-    if {"Systolic_BP", "Diastolic_BP"}.issubset(data.columns):
-        data["Pulse_Pressure"] = data["Systolic_BP"] - data["Diastolic_BP"]
-        data["Blood_Pressure_Category"] = np.select(
-            [
-                (data["Systolic_BP"] < 120) & (data["Diastolic_BP"] < 80),
-                (data["Systolic_BP"].between(120, 129)) & (data["Diastolic_BP"] < 80),
-                (data["Systolic_BP"].between(130, 139)) | (data["Diastolic_BP"].between(80, 89)),
-            ],
-            ["Normal", "Elevated", "Hypertension Stage 1"],
-            default="Hypertension Stage 2"
+    # Exact feature engineering used by the notebook.
+    if {"Systolic_BP", "Diastolic_BP"}.issubset(x_data.columns):
+        x_data["Pulse_Pressure"] = (
+            x_data["Systolic_BP"] - x_data["Diastolic_BP"]
         )
 
-    if {"Waist_Circumference_cm", "Height_cm"}.issubset(data.columns):
-        data["Waist_to_Height"] = data["Waist_Circumference_cm"] / data["Height_cm"].replace(0, np.nan)
-        data["Waist_to_Height"] = data["Waist_to_Height"].fillna(0)
-
-    if "Smoking_Status" in data.columns and "Alcohol_Consumption" in data.columns and "Physical_Activity_Level" in data.columns:
-        data["Lifestyle_Risk"] = (
-            data["Smoking_Status"].eq("Current").astype(int)
-            + data["Alcohol_Consumption"].isin(["High", "Heavy"]).astype(int)
-            + data["Physical_Activity_Level"].isin(["Low", "Sedentary"]).astype(int)
+    if {"Waist_Circumference_cm", "Height_cm"}.issubset(x_data.columns):
+        x_data["Waist_to_Height"] = (
+            x_data["Waist_Circumference_cm"] / x_data["Height_cm"]
         )
 
-    if all(c in data.columns for c in ["Diabetes", "Hypertension", "Obesity"]):
-        data["Metabolic_Risk"] = data[["Diabetes", "Hypertension", "Obesity"]].fillna(0).sum(axis=1)
+    if {
+        "Smoking_Status",
+        "Alcohol_Consumption",
+        "Physical_Activity_Level",
+    }.issubset(x_data.columns):
+        x_data["Lifestyle_Risk"] = (
+            (x_data["Smoking_Status"] == "Current").astype(int)
+            + (x_data["Alcohol_Consumption"] == "High").astype(int)
+            + (x_data["Physical_Activity_Level"] == "Low").astype(int)
+        )
 
-    if all(c in data.columns for c in ["Cardiovascular_Disease", "Heart_Failure", "Hyperlipidemia"]):
-        data["CV_Risk"] = data[["Cardiovascular_Disease", "Heart_Failure", "Hyperlipidemia"]].fillna(0).sum(axis=1)
+    if {"Diabetes", "Hypertension", "Obesity"}.issubset(x_data.columns):
+        x_data["Metabolic_Risk"] = (
+            x_data["Diabetes"].astype(int)
+            + x_data["Hypertension"].astype(int)
+            + x_data["Obesity"].astype(int)
+        )
 
-    if "Sleep_Duration_Hours" in data.columns:
-        data["Poor_Sleep"] = ((data["Sleep_Duration_Hours"] < 6) | (data["Sleep_Duration_Hours"] > 9)).astype(int)
+    if {
+        "Cardiovascular_Disease",
+        "Heart_Failure",
+        "Hyperlipidemia",
+    }.issubset(x_data.columns):
+        x_data["CV_Risk"] = (
+            x_data["Cardiovascular_Disease"].astype(int)
+            + x_data["Heart_Failure"].astype(int)
+            + x_data["Hyperlipidemia"].astype(int)
+        )
 
-    return data
+    if "Sleep_Duration_Hours" in x_data.columns:
+        x_data["Poor_Sleep"] = (
+            (x_data["Sleep_Duration_Hours"] < 6)
+            | (x_data["Sleep_Duration_Hours"] > 9)
+        ).astype(int)
+
+    # Exact notebook split.
+    _, x_valid, _, y_valid = train_test_split(
+        x_data,
+        y_data,
+        test_size=0.2,
+        random_state=42,
+        stratify=y_data,
+    )
+
+    return (
+        x_valid.reset_index(drop=True),
+        pd.Series(y_valid).reset_index(drop=True),
+    )
 
 
 @st.cache_data(show_spinner=False)
 def load_shared_evaluation():
+    """
+    Use the same single-dataset 80/20 validation population created by
+    early_screening, then obtain predictions from the already-saved final SVM.
+    No separate train/test files are required and the model is not retrained.
+    """
     if final_svm_pipeline is None:
         return False, "Final SVM pipeline is not loaded."
 
-    # Find the fitted preprocessing transformer without assuming a specific
-    # step name. This keeps the original project's saved SVM pipeline intact.
-    pre = None
-    if hasattr(final_svm_pipeline, "named_steps"):
-        for step in final_svm_pipeline.named_steps.values():
-            if hasattr(step, "feature_names_in_"):
-                pre = step
-                break
-    if pre is None and hasattr(final_svm_pipeline, "feature_names_in_"):
-        pre = final_svm_pipeline
-    if pre is None or not hasattr(pre, "feature_names_in_"):
-        return False, "The saved SVM pipeline does not expose its raw feature schema."
-
     candidates = _candidate_files([
-        "Training_CKD_dataset.csv",
-        "Testing_CKD_dataset.csv",
         "CKD_Risk_Progression_Dataset_2026.csv"
     ])
+
+    if not candidates:
+        return False, (
+            "The Early Screening source dataset "
+            "'CKD_Risk_Progression_Dataset_2026.csv' was not found."
+        )
+
+    diagnostics = []
+
     for path in candidates:
         try:
-            data = pd.read_csv(path)
-            data = _add_early_screening_features(data)
-            data, y = _build_project_target(data)
-            if data is None:
-                continue
-            expected = list(pre.feature_names_in_)
-            missing = [c for c in expected if c not in data.columns]
-            if missing:
-                continue
-            x = data[expected].copy()
-            if "Training_CKD_dataset.csv" in path.name:
-                from sklearn.model_selection import train_test_split
-                x_train, x_valid, y_train, y_valid = train_test_split(
-                    x, y, test_size=0.20, random_state=42, stratify=y
+            raw_data = pd.read_csv(path)
+
+            x_valid_candidate, y_valid_candidate = (
+                _build_early_screening_validation_set(raw_data)
+            )
+
+            if x_valid_candidate is None:
+                diagnostics.append(
+                    f"{path.name}: required Early Screening columns are missing."
                 )
-            else:
-                x_valid, y_valid = x, y
-            pred = final_svm_pipeline.predict(x_valid)
-            score = final_svm_pipeline.decision_function(x_valid)
+                continue
+
+            # The saved deployment pipeline was fitted on the notebook's raw
+            # x_train features, so it can score the notebook-equivalent x_valid
+            # directly.  Do not reconstruct its internal preprocessing.
+            expected = getattr(
+                final_svm_pipeline,
+                "feature_names_in_",
+                None,
+            )
+
+            if expected is not None:
+                expected = list(expected)
+                missing = [
+                    col for col in expected
+                    if col not in x_valid_candidate.columns
+                ]
+                if missing:
+                    diagnostics.append(
+                        f"{path.name}: validation set is missing model "
+                        f"features: {', '.join(missing[:8])}"
+                    )
+                    continue
+                x_valid_candidate = x_valid_candidate[expected]
+
+            pred = final_svm_pipeline.predict(x_valid_candidate)
+            score = final_svm_pipeline.decision_function(x_valid_candidate)
+
             return True, {
-                "x_valid": x_valid,
-                "y_valid": pd.Series(y_valid).reset_index(drop=True),
+                "x_valid": x_valid_candidate.reset_index(drop=True),
+                "y_valid": y_valid_candidate.reset_index(drop=True),
                 "y_pred_svm": pd.Series(pred).reset_index(drop=True),
-                "y_score": np.asarray(score)
+                "y_score": np.asarray(score),
+                "evaluation_source": (
+                    "Early Screening notebook validation split "
+                    "(single source dataset, random_state=42)"
+                ),
+                "evaluation_dataset": path.name,
             }
-        except Exception:
-            continue
-    return False, "A compatible CKD evaluation dataset was not found."
 
+        except Exception as exc:
+            diagnostics.append(f"{path.name}: {type(exc).__name__}: {exc}")
 
-evaluation_loaded, evaluation_payload = load_shared_evaluation()
-evaluation_error = None if evaluation_loaded else evaluation_payload
-
-if evaluation_loaded:
-    x_valid = evaluation_payload["x_valid"]
-    y_valid = evaluation_payload["y_valid"]
-    y_pred_svm = evaluation_payload["y_pred_svm"]
-    y_score = evaluation_payload["y_score"]
-    evaluation_source = "Live evaluation from the saved SVM pipeline"
-else:
-    x_valid = None
-    y_valid = None
-    y_pred_svm = None
-    y_score = None
-    evaluation_source = "Notebook validation results"
-
-# Shared SVM metrics: live when possible, exact notebook values otherwise.
-if evaluation_loaded:
-    svm_accuracy = accuracy_score(y_valid, y_pred_svm)
-    svm_precision = precision_score(y_valid, y_pred_svm, zero_division=0)
-    svm_recall = recall_score(y_valid, y_pred_svm, zero_division=0)
-    svm_f1 = f1_score(y_valid, y_pred_svm, zero_division=0)
-    svm_roc_auc = roc_auc_score(y_valid, y_score)
-else:
-    row = NOTEBOOK_MODEL_RESULTS.loc[NOTEBOOK_MODEL_RESULTS["Model"] == "Linear SVM"].iloc[0]
-    svm_accuracy = float(row["Accuracy"])
-    svm_precision = float(row["Precision"])
-    svm_recall = float(row["Recall"])
-    svm_f1 = float(row["F1 Score"])
-    svm_roc_auc = float(row["ROC AUC"])
+    detail = " | ".join(diagnostics[:3])
+    return False, (
+        "The Early Screening validation population could not be evaluated."
+        + (f" Details: {detail}" if detail else "")
+    )
 
 
 # =============================================================================
