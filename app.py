@@ -517,6 +517,17 @@ if is_home_section:
 
 
         # =========================================================================
+        # VIEWING DISCLAIMER
+        # =========================================================================
+
+        st.info(
+            "💡 **Viewing recommendation:** For the clearest viewing of the dashboard, "
+            "use **Light Mode** on the run page. On mobile devices, switch to "
+            "**Desktop Site/Desktop Mode** for the best layout and chart visibility."
+        )
+
+
+        # =========================================================================
         # APPLICATION STRUCTURE
         # =========================================================================
 
