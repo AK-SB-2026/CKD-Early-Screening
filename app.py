@@ -5342,6 +5342,16 @@ if main_early_screening:
 
                     )
 
+                    # -------------------------------------------------------------
+                    # HAND OFF THE EXISTING EARLY-SCREENING INSURANCE ANALYSIS
+                    # -------------------------------------------------------------
+                    # The Insurance Intelligence section reuses this exact
+                    # validation-population analysis. No second dataset and no
+                    # second SVM prediction are created.
+                    st.session_state[
+                        "early_screening_insurance_analysis"
+                    ] = risk_analysis.copy()
+
 
                     st.divider()
 
@@ -6115,19 +6125,30 @@ if is_insurance_section:
 
         else:
 
-            portfolio = x_valid.copy()
+            # Reuse the exact insurance analysis generated in Early Screening.
+            # Fall back to the existing shared validation objects only when the
+            # Insurance section is opened before Early Screening has produced
+            # the handoff dataframe.
+            portfolio = st.session_state.get(
+                "early_screening_insurance_analysis"
+            )
 
-            portfolio["Predicted_CKD"] = y_pred_svm
+            if portfolio is not None:
+                portfolio = portfolio.copy()
+            else:
+                portfolio = x_valid.copy()
 
-            portfolio["Predicted_CKD"] = portfolio["Predicted_CKD"].replace({
-                0: "Low CKD Risk",
-                1: "High CKD Risk"
-            })
+                portfolio["Predicted_CKD"] = y_pred_svm
 
-            portfolio["Health_Insurance"] = portfolio["Health_Insurance"].replace({
-                0: "No Insurance",
-                1: "Has Insurance"
-            })
+                portfolio["Predicted_CKD"] = portfolio["Predicted_CKD"].replace({
+                    0: "Low CKD Risk",
+                    1: "High CKD Risk"
+                })
+
+                portfolio["Health_Insurance"] = portfolio["Health_Insurance"].replace({
+                    0: "No Insurance",
+                    1: "Has Insurance"
+                })
 
             portfolio["Risk_Level"] = portfolio["Predicted_CKD"].replace({
                 "Low CKD Risk": "Low Risk",
