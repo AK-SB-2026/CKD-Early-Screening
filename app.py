@@ -433,6 +433,7 @@ section_options = ["🏠 HOME", "1️⃣ EARLY SCREENING"]
 if has_completed_early_screening:
     section_options.append("2️⃣ CLINICAL SCREENING")
 section_options.append("3️⃣ INSURANCE INTELLIGENCE")
+section_options.append("💬 FEEDBACK")
 
 if "selected_app_section" not in st.session_state or st.session_state.get("selected_app_section") not in section_options:
     st.session_state["selected_app_section"] = "🏠 HOME"
@@ -450,6 +451,7 @@ is_home_section = selected_section == "🏠 HOME"
 main_early_screening = selected_section == "1️⃣ EARLY SCREENING"
 main_clinical_screening = selected_section == "2️⃣ CLINICAL SCREENING"
 is_insurance_section = selected_section == "3️⃣ INSURANCE INTELLIGENCE"
+is_feedback_section = selected_section == "💬 FEEDBACK"
 
 tab_home, tab_prediction, tab_interpretation, tab_statistics, tab_ckd_visuals, tab_insurance, tab_about = [st.container() for _ in range(7)]
 
@@ -460,6 +462,8 @@ elif main_early_screening:
     tab_interpretation = tab_prediction
 elif is_insurance_section:
     tab_insurance = st.container()
+elif is_feedback_section:
+    tab_feedback = st.container()
 
 
 # =============================================================================
@@ -6588,3 +6592,47 @@ if main_clinical_screening:
         ch_img = clinical_asset("severity_correlation_heatmap.png")
         if ch_img:
             st.image(ch_img, caption="Correlation Matrix Heatmap of Key Clinical & Renal Variables", use_container_width=True)
+
+
+# =============================================================================
+# SECTION : FEEDBACK
+# =============================================================================
+
+if is_feedback_section:
+    with tab_feedback:
+        st.header("💬 Feedback")
+        st.write(
+            "Help us improve the RENALIS dashboard. Your feedback is valuable for "
+            "improving usability, clarity, and the overall screening experience."
+        )
+
+        with st.form("renalis_feedback_form"):
+            rating = st.feedback("stars")
+            feedback_type = st.selectbox(
+                "What would you like to give feedback about?",
+                ["Overall Experience", "Early Screening", "Clinical Screening",
+                 "Insurance Intelligence", "Visualisation / Dashboard", "Other"]
+            )
+            comments = st.text_area(
+                "Comments",
+                placeholder="Tell us what worked well or what could be improved...",
+                height=150
+            )
+            submitted = st.form_submit_button(
+                "📨 Submit Feedback", use_container_width=True, type="primary"
+            )
+
+        if submitted:
+            if rating is None and not comments.strip():
+                st.warning("Please provide a rating or a comment before submitting.")
+            else:
+                st.session_state["latest_feedback"] = {
+                    "rating": rating,
+                    "category": feedback_type,
+                    "comments": comments.strip()
+                }
+                st.success("Thank you! Your feedback has been recorded for this session. 💗")
+
+        st.caption(
+            "Please do not enter names, medical records, or other personally identifiable information in feedback."
+        )
