@@ -398,6 +398,151 @@ def render_severity_visual_stepper(severity_label):
             )
 
 
+
+# =============================================================================
+# SECTION 2.5 : USER ACCESS / IDENTITY GATE
+# =============================================================================
+# Users must identify themselves before accessing the dashboard.
+# New users receive a unique RENALIS ID; returning users sign in with
+# their existing ID + name. Email is optional.
+# =============================================================================
+
+if "renalis_authenticated" not in st.session_state:
+    st.session_state["renalis_authenticated"] = False
+if "renalis_user_id" not in st.session_state:
+    st.session_state["renalis_user_id"] = ""
+if "renalis_user_name" not in st.session_state:
+    st.session_state["renalis_user_name"] = ""
+if "renalis_user_email" not in st.session_state:
+    st.session_state["renalis_user_email"] = ""
+
+if not st.session_state["renalis_authenticated"]:
+    st.markdown(
+        """
+        <div class='hero'>
+            <div class='kicker'>RENALIS • SECURE USER ACCESS</div>
+            <h1>Welcome to RENALIS</h1>
+            <p>Identify yourself once to access Clinical Screening and the rest of the dashboard.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    access_choice = st.radio(
+        "Before you continue, are you a new user?",
+        ["🆕 Yes, I am a new user", "🔑 No, I already have a RENALIS ID"],
+        horizontal=True,
+        key="renalis_access_choice",
+    )
+
+    if access_choice == "🆕 Yes, I am a new user":
+        st.subheader("👤 Enter your details")
+        st.caption("Your name is required. Email is optional and may be used for follow-up communication.")
+
+        with st.form("renalis_new_user_form"):
+            new_name = st.text_input(
+                "Name *",
+                placeholder="Enter your name",
+                max_chars=100,
+            )
+            new_email = st.text_input(
+                "Email (optional)",
+                placeholder="name@example.com",
+                max_chars=200,
+            )
+            create_account = st.form_submit_button(
+                "Create my RENALIS ID & Continue →",
+                type="primary",
+                use_container_width=True,
+            )
+
+        if create_account:
+            clean_name = new_name.strip()
+            clean_email = new_email.strip()
+
+            if not clean_name:
+                st.error("Please enter your name to continue.")
+            elif clean_email and ("@" not in clean_email or "." not in clean_email.split("@")[-1]):
+                st.error("Please enter a valid email address, or leave the email field blank.")
+            else:
+                import uuid
+                generated_id = "REN-" + uuid.uuid4().hex[:8].upper()
+                st.session_state["renalis_user_id"] = generated_id
+                st.session_state["renalis_user_name"] = clean_name
+                st.session_state["renalis_user_email"] = clean_email
+                st.session_state["feedback_user_id"] = generated_id
+                st.session_state["feedback_user_name"] = clean_name
+                st.session_state["feedback_user_email"] = clean_email
+                st.session_state["renalis_authenticated"] = True
+                st.rerun()
+
+    else:
+        st.subheader("🔑 Returning user")
+        st.caption("Enter the RENALIS ID you received previously and the same name used when registering.")
+
+        with st.form("renalis_returning_user_form"):
+            returning_id = st.text_input(
+                "RENALIS ID *",
+                placeholder="e.g. REN-A1B2C3D4",
+                max_chars=20,
+            )
+            returning_name = st.text_input(
+                "Name *",
+                placeholder="Enter your name",
+                max_chars=100,
+            )
+            returning_email = st.text_input(
+                "Email (optional)",
+                placeholder="name@example.com",
+                max_chars=200,
+            )
+            sign_in = st.form_submit_button(
+                "Continue to RENALIS →",
+                type="primary",
+                use_container_width=True,
+            )
+
+        if sign_in:
+            clean_id = returning_id.strip().upper()
+            clean_name = returning_name.strip()
+            clean_email = returning_email.strip()
+
+            if not clean_id or not clean_name:
+                st.error("Please enter both your RENALIS ID and name to continue.")
+            elif not clean_id.startswith("REN-"):
+                st.error("Please enter a valid RENALIS ID (for example, REN-A1B2C3D4).")
+            elif clean_email and ("@" not in clean_email or "." not in clean_email.split("@")[-1]):
+                st.error("Please enter a valid email address, or leave the email field blank.")
+            else:
+                st.session_state["renalis_user_id"] = clean_id
+                st.session_state["renalis_user_name"] = clean_name
+                st.session_state["renalis_user_email"] = clean_email
+                st.session_state["feedback_user_id"] = clean_id
+                st.session_state["feedback_user_name"] = clean_name
+                st.session_state["feedback_user_email"] = clean_email
+                st.session_state["renalis_authenticated"] = True
+                st.rerun()
+
+    st.info("🔒 Your RENALIS ID is a unique application identifier. Do not enter medical records in the identity fields.")
+    st.stop()
+
+# Keep identity available throughout the existing application and feedback API.
+st.session_state["feedback_user_id"] = st.session_state.get("renalis_user_id", "")
+st.session_state["feedback_user_name"] = st.session_state.get("renalis_user_name", "")
+st.session_state["feedback_user_email"] = st.session_state.get("renalis_user_email", "")
+
+with st.sidebar:
+    st.markdown(
+        f"<div style='margin-bottom:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.10);font-size:11px;line-height:1.45;'><b>👤 {st.session_state.get('renalis_user_name','')}</b><br><span style='opacity:.78'>{st.session_state.get('renalis_user_id','')}</span></div>",
+        unsafe_allow_html=True,
+    )
+    if st.button("🔄 Change user", use_container_width=True):
+        st.session_state["renalis_authenticated"] = False
+        st.session_state["renalis_user_id"] = ""
+        st.session_state["renalis_user_name"] = ""
+        st.session_state["renalis_user_email"] = ""
+        st.rerun()
+
 # =============================================================================
 # SECTION 3 : APPLICATION TITLE
 # =============================================================================
@@ -819,30 +964,6 @@ if is_home_section:
         # =========================================================================
 
         st.divider()
-
-        st.subheader("👤 User Identification")
-        st.caption("Enter a non-medical identifier so your feedback can be associated with your session. These details are used for feedback identification only.")
-
-        id_col1, id_col2 = st.columns(2)
-        with id_col1:
-            user_id = st.text_input(
-                "User / Participant ID *",
-                value=st.session_state.get("feedback_user_id", ""),
-                placeholder="e.g. REN-001",
-                key="feedback_user_id_input"
-            )
-        with id_col2:
-            user_email = st.text_input(
-                "Email (optional)",
-                value=st.session_state.get("feedback_user_email", ""),
-                placeholder="e.g. name@example.com",
-                key="feedback_user_email_input"
-            )
-
-        st.session_state["feedback_user_id"] = user_id.strip()
-        st.session_state["feedback_user_email"] = user_email.strip()
-
-        st.info("💡 Use a study/user ID rather than medical records or other sensitive health information.")
 
         st.divider()
         st.subheader("📝 Before You Begin")
@@ -6655,6 +6776,7 @@ if is_feedback_section:
             else:
                 feedback_payload = {
                     "user_id": st.session_state["feedback_user_id"],
+                    "name": st.session_state.get("feedback_user_name", ""),
                     "email": st.session_state.get("feedback_user_email", ""),
                     "rating": rating,
                     "category": feedback_type,
