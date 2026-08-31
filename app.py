@@ -31,6 +31,7 @@ import numpy as np
 import pandas as pd
 import os
 import math
+import requests
 from pathlib import Path
 from io import BytesIO
 
@@ -819,9 +820,33 @@ if is_home_section:
 
         st.divider()
 
+        st.subheader("👤 User Identification")
+        st.caption("Enter a non-medical identifier so your feedback can be associated with your session. These details are used for feedback identification only.")
+
+        id_col1, id_col2 = st.columns(2)
+        with id_col1:
+            user_id = st.text_input(
+                "User / Participant ID *",
+                value=st.session_state.get("feedback_user_id", ""),
+                placeholder="e.g. REN-001",
+                key="feedback_user_id_input"
+            )
+        with id_col2:
+            user_email = st.text_input(
+                "Email (optional)",
+                value=st.session_state.get("feedback_user_email", ""),
+                placeholder="e.g. name@example.com",
+                key="feedback_user_email_input"
+            )
+
+        st.session_state["feedback_user_id"] = user_id.strip()
+        st.session_state["feedback_user_email"] = user_email.strip()
+
+        st.info("💡 Use a study/user ID rather than medical records or other sensitive health information.")
+
+        st.divider()
         st.subheader("📝 Before You Begin")
         st.markdown(
-            "Home is information-only. No patient information is entered here. "
             "Patient inputs are collected separately inside the **Early Screening** and **Clinical Screening** pathways. "
             "Clinical Screening is unlocked only after Early Screening is completed, but it has its own independent 75-feature intake."
         )
@@ -6623,16 +6648,38 @@ if is_feedback_section:
             )
 
         if submitted:
-            if rating is None and not comments.strip():
+            if not st.session_state.get("feedback_user_id", "").strip():
+                st.warning("Please enter your User / Participant ID on the Home page before submitting feedback.")
+            elif rating is None and not comments.strip():
                 st.warning("Please provide a rating or a comment before submitting.")
             else:
-                st.session_state["latest_feedback"] = {
+                feedback_payload = {
+                    "user_id": st.session_state["feedback_user_id"],
+                    "email": st.session_state.get("feedback_user_email", ""),
                     "rating": rating,
                     "category": feedback_type,
                     "comments": comments.strip()
                 }
-                st.success("Thank you! Your feedback has been recorded for this session. 💗")
+
+                # Configure the server endpoint through Streamlit secrets or an
+                # environment variable. No endpoint is hard-coded into the app.
+                feedback_api_url = st.secrets.get("FEEDBACK_API_URL", os.getenv("FEEDBACK_API_URL", "")).strip()
+
+                if not feedback_api_url:
+                    st.error("Feedback server is not configured. Please contact the administrator.")
+                else:
+                    try:
+                        response = requests.post(
+                            feedback_api_url,
+                            json=feedback_payload,
+                            timeout=10
+                        )
+                        response.raise_for_status()
+                        st.session_state["latest_feedback"] = feedback_payload
+                        st.success("Thank you! Your feedback was submitted successfully. 💗")
+                    except requests.RequestException as exc:
+                        st.error(f"Could not submit feedback to the server. Please try again later. ({exc})")
 
         st.caption(
-            "Please do not enter names, medical records, or other personally identifiable information in feedback."
+            "Please do not enter medical records or other sensitive health information in the feedback form."
         )
