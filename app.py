@@ -32,6 +32,8 @@ import pandas as pd
 import os
 import math
 import requests
+
+FEEDBACK_API_URL = "https://script.google.com/macros/s/AKfycbzCC24mrt6BhuVXc-_oWGth-iVk_f5TjRUGL2H77drwfT0w-iOnhvirl3US9wuFnQ6DdQ/exec"
 from pathlib import Path
 from io import BytesIO
 
