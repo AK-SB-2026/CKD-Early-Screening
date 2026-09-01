@@ -26,6 +26,12 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
+from supabase import create_client
+
+# Supabase persistent feedback storage
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -33,7 +39,6 @@ import os
 import math
 import requests
 
-FEEDBACK_API_URL = "https://script.google.com/macros/s/AKfycbzCC24mrt6BhuVXc-_oWGth-iVk_f5TjRUGL2H77drwfT0w-iOnhvirl3US9wuFnQ6DdQ/exec"
 from pathlib import Path
 from io import BytesIO
 
@@ -6785,24 +6790,25 @@ if is_feedback_section:
                     "comments": comments.strip()
                 }
 
-                # Configure the server endpoint through Streamlit secrets or an
-                # environment variable. No endpoint is hard-coded into the app.
-                feedback_api_url = st.secrets.get("FEEDBACK_API_URL", os.getenv("FEEDBACK_API_URL", "")).strip()
+                try:
+                    supabase.table("feedback").insert({
+                        "renalis_id": feedback_payload["user_id"],
+                        "name": feedback_payload["name"],
+                        "email": feedback_payload["email"],
+                        "rating": (
+                            feedback_payload["rating"] + 1
+                            if feedback_payload["rating"] is not None
+                            else None
+                        ),
+                        "category": feedback_payload["category"],
+                        "comments": feedback_payload["comments"]
+                    }).execute()
 
-                if not feedback_api_url:
-                    st.error("Feedback server is not configured. Please contact the administrator.")
-                else:
-                    try:
-                        response = requests.post(
-                            feedback_api_url,
-                            json=feedback_payload,
-                            timeout=10
-                        )
-                        response.raise_for_status()
-                        st.session_state["latest_feedback"] = feedback_payload
-                        st.success("Thank you! Your feedback was submitted successfully. 💗")
-                    except requests.RequestException as exc:
-                        st.error(f"Could not submit feedback to the server. Please try again later. ({exc})")
+                    st.session_state["latest_feedback"] = feedback_payload
+                    st.success("Thank you! Your feedback was submitted successfully. 💗")
+
+                except Exception as exc:
+                    st.error(f"Could not save your feedback. Please try again later. ({exc})")
 
         st.caption(
             "Please do not enter medical records or other sensitive health information in the feedback form."
