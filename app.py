@@ -71,26 +71,13 @@ from sklearn.metrics import (
 TURSO_DATABASE_URL = st.secrets["TURSO_DATABASE_URL"]
 TURSO_AUTH_TOKEN = st.secrets["TURSO_AUTH_TOKEN"]
 
-# Use the official HTTP libSQL driver for the remote Turso database.
-# This avoids WebSocket connections and works with libsql:// Turso URLs.
+# Connect to the existing Turso database.
+# The feedback table is created once in Turso's SQL editor, so the app
+# does not try to create/alter the schema every time Streamlit starts.
 turso = libsql.connect(
     database=TURSO_DATABASE_URL,
     auth_token=TURSO_AUTH_TOKEN
 )
-
-turso.execute("""
-    CREATE TABLE IF NOT EXISTS feedback (
-        id INTEGER PRIMARY KEY,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        renalis_id TEXT,
-        name TEXT,
-        email TEXT,
-        rating INTEGER,
-        category TEXT,
-        comments TEXT
-    )
-""")
-turso.commit()
 
 
 # =============================================================================
