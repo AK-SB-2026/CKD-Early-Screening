@@ -26,12 +26,29 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
-from supabase import create_client
+import libsql_client
 
 # Supabase persistent feedback storage
-SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+TURSO_DATABASE_URL = st.secrets["TURSO_DATABASE_URL"]
+TURSO_AUTH_TOKEN = st.secrets["TURSO_AUTH_TOKEN"]
+
+turso = libsql_client.create_client_sync(
+    TURSO_DATABASE_URL,
+    auth_token=TURSO_AUTH_TOKEN
+)
+
+turso.execute("""
+    CREATE TABLE IF NOT EXISTS feedback (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        renalis_id TEXT,
+        name TEXT,
+        email TEXT,
+        rating INTEGER,
+        category TEXT,
+        comments TEXT
+    )
+""")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -6791,18 +6808,24 @@ if is_feedback_section:
                 }
 
                 try:
-                    supabase.table("feedback").insert({
-                        "renalis_id": feedback_payload["user_id"],
-                        "name": feedback_payload["name"],
-                        "email": feedback_payload["email"],
-                        "rating": (
-                            feedback_payload["rating"] + 1
-                            if feedback_payload["rating"] is not None
-                            else None
-                        ),
-                        "category": feedback_payload["category"],
-                        "comments": feedback_payload["comments"]
-                    }).execute()
+                    turso.execute(
+                        """
+                        INSERT INTO feedback
+                            (renalis_id, name, email, rating, category, comments)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        """,
+                        (    feedback_payload["user_id"],
+                             feedback_payload["name"],
+                             feedback_payload["email"],
+                            (
+                                feedback_payload["rating"] + 1
+                                if feedback_payload["rating"] is not None
+                                else None
+                            ),
+                            feedback_payload["category"],
+                            feedback_payload["comments"]
+                        )
+                    )
 
                     st.session_state["latest_feedback"] = feedback_payload
                     st.success("Thank you! Your feedback was submitted successfully. 💗")
