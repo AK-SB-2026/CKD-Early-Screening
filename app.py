@@ -26,29 +26,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
-import libsql_client
+import turso_serverless
 
-# Supabase persistent feedback storage
-TURSO_DATABASE_URL = st.secrets["TURSO_DATABASE_URL"]
-TURSO_AUTH_TOKEN = st.secrets["TURSO_AUTH_TOKEN"]
-
-turso = libsql_client.create_client_sync(
-    TURSO_DATABASE_URL,
-    auth_token=TURSO_AUTH_TOKEN
-)
-
-turso.execute("""
-    CREATE TABLE IF NOT EXISTS feedback (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        renalis_id TEXT,
-        name TEXT,
-        email TEXT,
-        rating INTEGER,
-        category TEXT,
-        comments TEXT
-    )
-""")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -83,6 +62,36 @@ from sklearn.metrics import (
     precision_recall_curve,
     average_precision_score
 )
+
+
+# =============================================================================
+# TURSO : PERSISTENT FEEDBACK STORAGE
+# =============================================================================
+
+TURSO_DATABASE_URL = st.secrets["TURSO_DATABASE_URL"]
+TURSO_AUTH_TOKEN = st.secrets["TURSO_AUTH_TOKEN"]
+
+# Use Turso's HTTP driver instead of the older WebSocket-based libsql-client.
+TURSO_HTTP_URL = TURSO_DATABASE_URL.replace("libsql://", "https://", 1)
+
+turso = turso_serverless.connect(
+    TURSO_HTTP_URL,
+    auth_token=TURSO_AUTH_TOKEN
+)
+
+turso.execute("""
+    CREATE TABLE IF NOT EXISTS feedback (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        renalis_id TEXT,
+        name TEXT,
+        email TEXT,
+        rating INTEGER,
+        category TEXT,
+        comments TEXT
+    )
+""")
+turso.commit()
 
 
 # =============================================================================
@@ -6814,9 +6823,10 @@ if is_feedback_section:
                             (renalis_id, name, email, rating, category, comments)
                         VALUES (?, ?, ?, ?, ?, ?)
                         """,
-                        (    feedback_payload["user_id"],
-                             feedback_payload["name"],
-                             feedback_payload["email"],
+                        (
+                            feedback_payload["user_id"],
+                            feedback_payload["name"],
+                            feedback_payload["email"],
                             (
                                 feedback_payload["rating"] + 1
                                 if feedback_payload["rating"] is not None
@@ -6826,6 +6836,7 @@ if is_feedback_section:
                             feedback_payload["comments"]
                         )
                     )
+                    turso.commit()
 
                     st.session_state["latest_feedback"] = feedback_payload
                     st.success("Thank you! Your feedback was submitted successfully. 💗")
