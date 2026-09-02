@@ -26,7 +26,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
-import turso_serverless
+import libsql
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -71,17 +71,16 @@ from sklearn.metrics import (
 TURSO_DATABASE_URL = st.secrets["TURSO_DATABASE_URL"]
 TURSO_AUTH_TOKEN = st.secrets["TURSO_AUTH_TOKEN"]
 
-# Use Turso's HTTP driver instead of the older WebSocket-based libsql-client.
-TURSO_HTTP_URL = TURSO_DATABASE_URL.replace("libsql://", "https://", 1)
-
-turso = turso_serverless.connect(
-    TURSO_HTTP_URL,
+# Use the official HTTP libSQL driver for the remote Turso database.
+# This avoids WebSocket connections and works with libsql:// Turso URLs.
+turso = libsql.connect(
+    database=TURSO_DATABASE_URL,
     auth_token=TURSO_AUTH_TOKEN
 )
 
 turso.execute("""
     CREATE TABLE IF NOT EXISTS feedback (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id INTEGER PRIMARY KEY,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         renalis_id TEXT,
         name TEXT,
